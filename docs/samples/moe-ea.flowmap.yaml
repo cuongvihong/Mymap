@@ -1,0 +1,590 @@
+# Dữ liệu mẫu dựng từ bản demo "Bản đồ MOE Education Account".
+# Nguồn: [Agile] FS R1V1.0.docx, [Agile] FS03.docx, [Agile] FS 08.docx, [Agile] FS 09.docx
+flowmap: 1
+project:
+  name: MOE Education Account
+  docs_root: "D:\\AIQA\\Agileproject\\roles\\ba"
+groups:
+  - id: R1
+    title: Education Account Lifecycle
+    fs: "[Agile] FS R1V1.0.docx"
+  - id: R3
+    title: School, Student và Fee
+    fs: "[Agile] FS03.docx"
+  - id: R8
+    title: "Parent Portal: SingPass, EA, Profile"
+    fs: "[Agile] FS 08.docx"
+  - id: R9
+    title: Outstanding Fees và Payment
+    fs: "[Agile] FS 09.docx"
+nodes:
+  - id: JOB
+    type: start
+    subtype: schedule
+    group: R1
+    code: Start
+    title: Job đồng bộ hằng ngày
+    body: "Chạy 00:00 giờ Singapore, kể cả cuối tuần và ngày lễ. Lần đầu chạy Initial Sync."
+    fix: Scheduler của job đồng bộ
+    section: §1.1.2
+  - id: F1A
+    type: fnc
+    group: R1
+    code: "R1 · F01"
+    title: Tạo Education Account tự động
+    body: Lấy công dân Singapore từ Government API, kiểm tra dữ liệu bắt buộc và trùng theo NRIC, tạo Student Profile và EA trạng thái Active, số dư SGD 0.00.
+    fix: Job đồng bộ, bước kiểm tra dữ liệu bắt buộc và chống trùng
+    chips: [Daily job, Mock Gov API, NRIC]
+    section: §1.1.4 đến §1.1.11
+  - id: F1B
+    type: fnc
+    group: R1
+    code: "R1 · F02"
+    title: Kiểm tra và đóng EA
+    body: Mọi thao tác backend chạm vào EA đều gọi kiểm tra này trước. Đủ 16 tuổi hoặc mất quốc tịch thì đóng. Còn số dư thì hoãn đóng vì chưa có chuyển CPF.
+    fix: Hàm Closure Eligibility Check dùng chung cho mọi API đọc hoặc ghi EA
+    chips: [Closure check, Mock Gov API]
+    section: §1.2
+  - id: F3A
+    type: fnc
+    group: R3
+    code: "R3 · F01 đến F07"
+    title: Quản lý trường, lớp, học sinh
+    body: HQ tạo School và School User. School User tạo Level, Class, nhập Student và gán vào lớp. Chuyển lớp, chuyển trường do HQ cập nhật.
+    fix: Admin Portal, các màn School, Class, Student
+    chips: [Admin Portal, Enrolment]
+    section: §3.1 đến §3.7
+  - id: F3B
+    type: fnc
+    group: R3
+    code: "R3 · F08"
+    title: Liên kết học sinh với EA
+    body: Học sinh Singaporean được gán vào lớp thì hệ thống tìm EA do R1 tạo và liên kết. Liên kết một lần, không đổi số dư.
+    fix: Bước sau khi tạo enrolment. Chưa chốt cách xử lý khi EA chưa có hoặc đã đóng (Q16)
+    chips: [Tự động sau enrolment]
+    section: §3.8
+  - id: F3C
+    type: fnc
+    group: R3
+    code: "R3 · F09 đến F16"
+    title: Cấu hình và phát hành phí
+    body: HQ tạo Fee Type, Fee Component, Rate Rule rồi phát hành Fee Publication. Hệ thống tìm học sinh nhận phí và sinh Student Charge. Chỉ charge POSTED mới hiện cho phụ huynh.
+    fix: Admin Portal, màn Fee Publication. Nhiều điểm chờ khách hàng trả lời (Q02 đến Q19)
+    chips: [Admin Portal, GST]
+    section: §3.9 đến §3.16
+  - id: STP
+    type: start
+    subtype: user
+    group: R8
+    code: Start
+    title: Parent mở e-Service
+    body: Vào Landing page, chọn Log in with SingPass.
+    fix: e-Service Portal, Landing page
+    section: §3 bước 1
+  - id: F8A
+    type: fnc
+    group: R8
+    code: "R8 · FR-08.1"
+    title: Đăng nhập SingPass
+    body: SingPass trả NRIC. Hệ thống gọi API dữ liệu theo NRIC để lấy Parent và các con, lần đầu thì tạo tài khoản, rồi cập nhật dữ liệu mới nhất của Parent đó.
+    fix: Luồng đăng nhập e-Service, lớp tích hợp SingPass và API dữ liệu
+    chips: [SingPass mock, Timeout 10 giây]
+    section: §5 FR-08.1
+  - id: F8B
+    type: fnc
+    group: R8
+    code: "R8 · FR-08.2"
+    title: Home và xem EA của con
+    body: Mỗi con một card. Mở EA thấy số dư, khoản Pending, giao dịch và bộ lọc. Con đủ 16 tuổi chỉ được xem.
+    fix: e-Service Portal, màn Home và Education Account
+    chips: [e-Service, 20 dòng mỗi trang]
+    section: §5 FR-08.2, §6.1, §6.2
+  - id: F8C
+    type: fnc
+    group: R8
+    code: "R8 · FR-08.3"
+    title: Sửa My details
+    body: Parent sửa số điện thoại, email, địa chỉ nhận thư. Họ tên, NRIC, địa chỉ cư trú lấy từ SingPass nên chỉ đọc.
+    fix: e-Service Portal, màn My details
+    chips: [Audit log]
+    section: §5 FR-08.3
+  - id: F9A
+    type: fnc
+    group: R9
+    code: "R9 · F9.1, F9.2"
+    title: Xem invoice chưa trả
+    body: Liệt kê con đã liên kết, hiện invoice Issued của con kèm số dư EA. Mỗi dòng invoice là một Student Charge của R3.
+    fix: e-Service Portal, màn chọn con và danh sách phí
+    chips: [SCR-01, SCR-02]
+    section: §3.1.2 bước 1 đến 3
+  - id: F9B
+    type: fnc
+    group: R9
+    code: "R9 · F9.3"
+    title: Chọn cách thanh toán
+    body: EA, online hoặc chia đôi. Số dư EA nhỏ hơn số phải trả thì tắt lựa chọn chỉ EA và đề xuất chia đôi, phần EA bằng toàn bộ số dư.
+    fix: e-Service Portal, màn chọn phương thức và xác nhận
+    chips: [SCR-04, SCR-05]
+    section: §3.1.2 bước 4 đến 6
+  - id: F9C
+    type: fnc
+    group: R9
+    code: "R9 · F9.4"
+    title: Trả bằng EA
+    body: Gọi sổ cái Function 1 trừ tiền một lần theo FundingReference. Thành công thì invoice Paid, lỗi thì invoice về Issued.
+    fix: Nhánh EA trong service thanh toán
+    chips: [Idempotency key]
+    section: §3.1.2 bước 6, BR-F9-03
+  - id: F9D
+    type: fnc
+    group: R9
+    code: "R9 · F9.5, F9.6"
+    title: Trả online và nhận kết quả
+    body: Tạo phiên thanh toán ở provider sandbox. Kết quả về qua webhook ký HMAC, kèm job hỏi lại provider cho các nhánh còn Pending.
+    fix: Nhánh online, endpoint webhook và job đối soát
+    chips: [Webhook HMAC, Sandbox]
+    section: §3.1.2 bước 6, 7, BR-F9-06
+  - id: F9E
+    type: fnc
+    group: R9
+    code: "R9 · F9.7"
+    title: Kết quả, biên lai, hoàn EA
+    body: Mọi nhánh thành công thì Paid và có biên lai. Chia đôi mà online hỏng thì hoàn phần EA. Kết quả không rõ hoặc hoàn lỗi thì chuyển ReconciliationRequired.
+    fix: Màn kết quả và job xử lý reversal
+    chips: [SCR-06, SCR-07, SCR-08]
+    section: §3.1.2 bước 7, Phụ lục A
+  - id: GOV
+    type: ext
+    code: External
+    title: Government Citizen API (mock)
+    body: NRIC, ngày sinh, quốc tịch, NRIC cha mẹ. FS 08 gọi là API dữ liệu Parent và học sinh.
+    fix: Lớp tích hợp Government API
+    chips: [Mock Sprint 1]
+    fs: "[Agile] FS R1V1.0.docx"
+    section: FS R1 §1.1.2, FS 08 §2.4
+  - id: SGP
+    type: ext
+    code: External
+    title: SingPass (mock)
+    body: Xác thực Parent, trả NRIC, họ tên, địa chỉ cư trú.
+    fix: Lớp tích hợp SingPass
+    fs: "[Agile] FS 08.docx"
+    section: §2.4
+  - id: PRV
+    type: ext
+    code: External
+    title: Online Payment Provider
+    body: Sandbox giả lập success, failure, cancel. Gửi kết quả qua webhook.
+    fix: Cấu hình provider sandbox
+    fs: "[Agile] FS 09.docx"
+    section: §1.2, DA-01
+  - id: DEA
+    type: tech
+    subtype: database
+    code: Database
+    title: Student Profile và Education Account
+    body: Hồ sơ học sinh, mã EA, trạng thái, số dư. Liên kết qua Student id.
+    fix: Bảng Student Profile, Education Account
+    fs: "[Agile] FS R1V1.0.docx"
+    section: FS R1 §1.1.8
+  - id: DCH
+    type: tech
+    subtype: database
+    code: Database
+    title: Student Charge
+    body: "Khoản phải thu: base, tax, total, trạng thái DRAFT, POSTED, VOID. FS 09 gom các charge thành invoice."
+    fix: Bảng student_charges. Chưa có cột trạng thái thanh toán (Q19)
+    fs: "[Agile] FS03.docx"
+    section: FS 03 §3.15, FS 09 DA-05
+  - id: DPR
+    type: tech
+    subtype: database
+    code: Database
+    title: Parent_Profile
+    body: Thông tin Parent, liên kết với con qua NRIC cha hoặc mẹ.
+    fix: Bảng Parent_Profile
+    fs: "[Agile] FS 08.docx"
+    section: FS 08 Phụ lục A
+  - id: LDG
+    type: tech
+    subtype: api
+    code: "R1 · Sổ cái EA"
+    title: Ghi nợ và hoàn EA
+    body: "API của Function 1: trừ số dư và ghi sổ cái nguyên tử, hoàn khi giao dịch không xong. Idempotent theo FundingReference."
+    fix: Service sổ cái EA của Function 1
+    chips: [Chưa chốt (OQ-05)]
+    fs: "[Agile] FS 09.docx"
+    section: FS 09 DA-02, BR-F9-03
+  - id: DTX
+    type: tech
+    subtype: database
+    code: Database
+    title: Invoice, Transaction, Funding leg
+    body: Mỗi lần trả là một transaction với nhánh EA và nhánh online. Một invoice chỉ có một giao dịch đang mở.
+    fix: Bảng invoice, transaction, funding leg
+    fs: "[Agile] FS 09.docx"
+    section: FS 09 §4.2, BR-F9-09
+  - id: ESK
+    type: end
+    subtype: warn
+    code: End
+    title: Không tạo EA
+    body: Không phải công dân, ngoài độ tuổi, thiếu dữ liệu bắt buộc, hoặc đã có EA.
+    fs: "[Agile] FS R1V1.0.docx"
+    section: FS R1 AF01 đến AF03, EF02
+  - id: E02
+    type: end
+    subtype: fail
+    code: MSG-0802
+    title: Đăng nhập không xong
+    body: SingPass lỗi hoặc Parent hủy, quay lại trang đăng nhập.
+    fs: "[Agile] FS 08.docx"
+    section: FS 08 §5
+  - id: E01
+    type: end
+    subtype: fail
+    code: MSG-0801, MSG-0809
+    title: Không vào được hệ thống
+    body: Không tìm thấy Parent, Parent không có con, hoặc API quá 10 giây.
+    fs: "[Agile] FS 08.docx"
+    section: FS 08 §5, AC 3, 23
+  - id: E16
+    type: end
+    subtype: warn
+    code: Chỉ xem
+    title: Con đủ 16 tuổi
+    body: Xem EA, phí, lịch sử. Không thanh toán, không nộp FAS.
+    fs: "[Agile] FS 08.docx"
+    section: FS 08 §3 bước 7, AC 7
+  - id: ENB
+    type: end
+    subtype: warn
+    code: Không đủ số dư
+    title: Gợi ý đổi cách trả
+    body: Hiện lý do, gợi ý trả online hoặc chia đôi. Không dữ liệu nào thay đổi.
+    fs: "[Agile] FS 09.docx"
+    section: FS 09 AC-04
+  - id: EPD
+    type: end
+    subtype: ok
+    code: Paid
+    title: Invoice đã thanh toán
+    body: Có mã tham chiếu và biên lai PDF.
+    fs: "[Agile] FS 09.docx"
+    section: FS 09 AC-03, AC-13
+  - id: EFL
+    type: end
+    subtype: fail
+    code: Failed
+    title: Invoice về Issued
+    body: Không thu tiền, phần EA đã trừ được hoàn. Cho thử lại hoặc thoát.
+    fs: "[Agile] FS 09.docx"
+    section: FS 09 AC-09, AC-17
+  - id: ERC
+    type: end
+    subtype: warn
+    code: ReconciliationRequired
+    title: Chờ vận hành xử lý
+    body: Invoice giữ PaymentPending, Parent thấy trạng thái đang xác minh.
+    fs: "[Agile] FS 09.docx"
+    section: FS 09 AC-18
+links:
+  - from: JOB
+    to: F1A
+    via: job
+    label: "Kích hoạt 00:00 SGT"
+    note: "Lần đầu: Initial Sync. Sau đó chạy mỗi ngày."
+  - from: F1A
+    to: GOV
+    via: rest
+    label: Lấy danh sách công dân
+    note: Initial Sync lấy 7 đến dưới 16 tuổi. Daily Sync chỉ lấy người vừa đủ 7 tuổi trong ngày.
+  - from: F1A
+    to: DEA
+    via: db
+    label: Ghi Student Profile và EA
+    note: Mã EA duy nhất, Active, SGD 0.00. Không tạo trùng theo NRIC.
+  - from: F1B
+    to: GOV
+    via: rest
+    label: Lấy ngày sinh, quốc tịch hiện tại
+    note: Dùng dữ liệu Government mới nhất, không dùng dữ liệu đã lưu lúc tạo.
+  - from: F1B
+    to: DEA
+    via: db
+    label: Đổi trạng thái sang Closed
+    note: Chỉ đóng khi đủ điều kiện hoàn tất. Còn số dư thì Closure Deferred.
+  - from: F3A
+    to: F3B
+    via: call
+    label: Sau khi tạo enrolment
+    note: F06 tạo enrolment xong thì chạy F08 nếu học sinh là Singaporean.
+  - from: F3A
+    to: F3C
+    via: call
+    label: Enrolment làm căn cứ tìm người nhận phí
+    note: F14 lấy enrolment hiệu lực tại eligibility_date.
+  - from: F3B
+    to: DEA
+    via: db
+    label: Đọc EA, ghi liên kết
+    note: Liên kết một lần cho mỗi học sinh, không đổi số dư.
+  - from: F3C
+    to: DCH
+    via: db
+    label: Sinh Student Charge
+    note: DRAFT rồi POSTED. Chỉ POSTED mới hiện cho phụ huynh.
+  - from: STP
+    to: F8A
+    via: ui
+    label: Log in with SingPass
+  - from: F8A
+    to: SGP
+    via: redirect
+    label: Chuyển sang SingPass
+    note: Parent xác thực trên SingPass (mock).
+  - from: F8A
+    to: SGP
+    via: redirect
+    label: Nhận NRIC, họ tên, địa chỉ cư trú
+    note: SingPass trả kết quả xác thực về hệ thống.
+  - from: F8A
+    to: GOV
+    via: rest
+    label: Tìm Parent và các con theo NRIC
+    note: Timeout 10 giây, quá hạn báo MSG-0809.
+  - from: F8A
+    to: DPR
+    via: db
+    label: Tạo tài khoản lần đầu, cập nhật Parent
+    note: Chỉ cập nhật cho Parent vừa đăng nhập, không có job cập nhật hằng đêm.
+  - from: F8A
+    to: DEA
+    via: db
+    label: Cập nhật dữ liệu các con
+    note: "Cần thống nhất: FS R1 ghi R8 không đồng bộ toàn bộ Student, còn FS 08 bản 0.4 ghi có cập nhật dữ liệu các con khi đăng nhập."
+  - from: F8A
+    to: F8B
+    via: ui
+    label: Vào Home
+    note: Mỗi con một card.
+  - from: F8B
+    to: DEA
+    via: db
+    label: Đọc số dư và giao dịch
+    note: Mới nhất trước, 20 dòng mỗi trang.
+  - from: F8B
+    to: F1B
+    via: call
+    label: Closure check trước khi xem EA
+    note: "FS R1 F02-BR02: mọi thao tác truy xuất EA phải qua kiểm tra này."
+  - from: F8B
+    to: F9A
+    via: ui
+    label: Nút All fees
+    note: Mở danh sách phí của con ở Function 9.
+  - from: F8B
+    to: F8C
+    via: ui
+    label: Mở My details
+  - from: F8C
+    to: DPR
+    via: db
+    label: Ghi phone, email, mailing
+    note: "Ghi audit log: trường, giá trị cũ, mới, người sửa, thời điểm."
+  - from: F9A
+    to: DCH
+    via: db
+    label: Đọc invoice item từ charge R3
+    note: Mỗi charge chỉ nằm ở một invoice.
+  - from: F9A
+    to: DEA
+    via: db
+    label: Đọc số dư EA của con
+    note: Con không có EA thì không hiện số dư.
+  - from: F9A
+    to: F9B
+    via: ui
+    label: Chọn invoice
+  - from: F9B
+    to: F9C
+    via: ui
+    label: Chọn EA hoặc chia đôi
+    note: Nút xác nhận khóa sau lần bấm đầu, gửi kèm idempotency key.
+  - from: F9B
+    to: F9D
+    via: ui
+    label: Chọn online
+  - from: F9C
+    to: F1B
+    via: call
+    label: Closure check trước giao dịch
+    note: "FS R1: financial action phải qua kiểm tra đóng EA trước."
+  - from: F9C
+    to: LDG
+    via: rest
+    label: Ghi nợ theo FundingReference
+    note: Gửi lại cùng FundingReference chỉ trừ một lần.
+  - from: F9C
+    to: DTX
+    via: db
+    label: Tạo transaction và funding leg
+    note: Invoice chuyển PaymentPending.
+  - from: F9C
+    to: F9D
+    via: call
+    label: "Chia đôi: trừ EA xong mới mở online"
+    note: Nhánh EA lỗi thì dừng, không thu online.
+  - from: F9C
+    to: F9E
+    via: call
+    label: Kết quả nhánh EA
+    note: "Có kết quả ngay: Succeeded hoặc Failed."
+  - from: F9D
+    to: PRV
+    via: rest
+    label: Tạo payment session
+    note: Chuyển Parent sang trang provider.
+  - from: F9D
+    to: PRV
+    via: webhook
+    label: Webhook kết quả, ký HMAC
+    note: Ghi nhận trước, xử lý sau. Sai chữ ký thì từ chối và ghi log bảo mật.
+  - from: F9D
+    to: PRV
+    via: rest
+    label: Hỏi lại trạng thái định kỳ
+    note: Job đối soát cho các nhánh còn Pending.
+  - from: F9D
+    to: F9E
+    via: call
+    label: Cập nhật kết quả online
+  - from: F9E
+    to: LDG
+    via: rest
+    label: Hoàn phần EA (reversal)
+    note: Khi online thất bại, bị hủy hoặc hết hạn.
+  - from: F9E
+    to: DTX
+    via: db
+    label: Ghi trạng thái transaction, invoice
+    note: Succeeded, Failed, Cancelled hoặc ReconciliationRequired.
+scenarios:
+  - id: P-01
+    type: pos
+    title: Tạo EA, phát hành phí, Parent trả bằng EA
+    steps:
+      - [JOB, "Job chạy lúc 00:00 giờ Singapore"]
+      - [F1A, "Học sinh vừa đủ 7 tuổi được tạo EA, số dư SGD 0.00"]
+      - [F3A, "Trường nhập học sinh và gán vào lớp"]
+      - [F3B, "Học sinh Singaporean được liên kết với EA"]
+      - [F3C, "HQ phát hành phí, sinh Student Charge POSTED"]
+      - [STP, "Parent mở e-Service"]
+      - [F8A, "Đăng nhập SingPass, API tìm thấy Parent và con"]
+      - [F8B, "Home hiện card của con, số dư EA"]
+      - [F9A, "Bấm All fees, thấy invoice Issued"]
+      - [F9B, "Số dư đủ, Parent chọn trả bằng EA"]
+      - [F9C, "Closure check qua, sổ cái trừ EA đúng một lần"]
+      - [F9E, "Mọi nhánh Succeeded"]
+      - [EPD, "Invoice Paid, có mã tham chiếu và biên lai"]
+  - id: N-01
+    type: neg
+    parent: P-01
+    at: F1A
+    title: Công dân không đủ điều kiện
+    steps:
+      - [F1A, "Không phải công dân, ngoài 7 đến dưới 16 tuổi, thiếu dữ liệu hoặc đã có EA"]
+      - [ESK, "Bỏ qua bản ghi, không tạo EA"]
+  - id: N-02
+    type: neg
+    parent: P-01
+    at: F8A
+    title: SingPass lỗi hoặc Parent hủy
+    steps:
+      - [F8A, "SingPass báo lỗi hoặc Parent bấm hủy"]
+      - [E02, "Báo MSG-0802, quay lại trang đăng nhập"]
+  - id: N-03
+    type: neg
+    parent: P-01
+    at: F8A
+    title: Không tìm thấy Parent hoặc API chậm
+    steps:
+      - [F8A, "API không thấy Parent, Parent không có con, hoặc quá 10 giây"]
+      - [E01, "Báo MSG-0801 hoặc MSG-0809, không vào được"]
+  - id: E-01
+    type: edge
+    parent: P-01
+    at: F8B
+    title: Con vừa đủ 16 tuổi
+    steps:
+      - [F8B, "Parent mở EA của con vừa đủ 16 tuổi"]
+      - [F1B, "Closure check: đủ 16 tuổi, EA ở trạng thái Due for closure"]
+      - [E16, "Chỉ xem, không thanh toán, không nộp FAS"]
+  - id: N-04
+    type: neg
+    parent: P-01
+    at: F9B
+    title: Không đủ số dư cho lựa chọn chỉ EA
+    steps:
+      - [F9B, "Số dư EA nhỏ hơn số phải trả"]
+      - [ENB, "Hiện lý do, gợi ý trả online hoặc chia đôi"]
+  - id: A-01
+    type: alt
+    parent: P-01
+    at: F9B
+    title: Chia đôi EA và online
+    steps:
+      - [F9B, "Số dư 20.00, invoice 50.00: chọn chia đôi"]
+      - [F9C, "Trừ trước phần EA 20.00"]
+      - [F9D, "Mở phiên online cho 30.00, webhook báo thành công"]
+      - [F9E, "Cả hai nhánh Succeeded"]
+      - [EPD, "Invoice Paid, biên lai ghi cả hai phần"]
+  - id: N-05
+    type: neg
+    parent: A-01
+    at: F9D
+    title: Phần online thất bại
+    steps:
+      - [F9D, "Online thất bại, bị hủy hoặc hết hạn"]
+      - [F9E, "Gọi Function 1 hoàn phần EA, nhánh EA Reversed"]
+      - [EFL, "Invoice về Issued, cho thử lại"]
+  - id: E-02
+    type: edge
+    parent: N-05
+    at: F9E
+    title: Hoàn EA bị lỗi
+    steps:
+      - [F9E, "Lệnh hoàn EA thất bại"]
+      - [ERC, "ReconciliationRequired, cảnh báo vận hành"]
+layout:
+  JOB: [60, 120]
+  F1A: [380, 80]
+  F1B: [380, 400]
+  F3A: [60, 960]
+  F3B: [380, 960]
+  F3C: [380, 1240]
+  STP: [1120, -120]
+  F8A: [1120, 60]
+  F8B: [1120, 420]
+  F8C: [1120, 720]
+  F9A: [1800, 420]
+  F9B: [2120, 420]
+  F9C: [2440, 260]
+  F9D: [2440, 600]
+  F9E: [2760, 420]
+  GOV: [740, 240]
+  SGP: [1460, -120]
+  PRV: [2440, 940]
+  DEA: [740, 620]
+  DCH: [1460, 1080]
+  DPR: [1460, 740]
+  LDG: [2120, 820]
+  DTX: [2760, 800]
+  ESK: [740, -60]
+  E02: [1460, 80]
+  E01: [1460, 250]
+  E16: [1460, 440]
+  ENB: [2120, 140]
+  EPD: [3080, 260]
+  EFL: [3080, 460]
+  ERC: [3080, 660]

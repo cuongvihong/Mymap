@@ -1,0 +1,114 @@
+.svgTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.wire {
+  fill: none;
+  stroke-width: 1.8;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    stroke 0.2s;
+}
+
+.base {
+  stroke: var(--dg-edge);
+  stroke-width: 1.6;
+}
+
+.baseLit {
+  stroke: var(--dg-edge-hi);
+  stroke-width: 2;
+}
+
+.dim {
+  opacity: var(--dg-dim-edge);
+}
+
+.wireSelected {
+  stroke-width: 2.6;
+}
+
+.hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.badge {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.badgeBox {
+  fill: var(--dg-panel);
+  stroke: var(--dg-line);
+}
+
+.badge:hover .badgeBox {
+  stroke: var(--dg-edge-hi);
+}
+
+.badgeText {
+  fill: var(--dg-ink);
+  font:
+    600 11px var(--font-mono),
+    monospace;
+}
+
+.label {
+  font:
+    500 11px var(--font-ui),
+    sans-serif;
+  paint-order: stroke;
+  stroke: var(--dg-canvas);
+  stroke-width: 4px;
+  pointer-events: none;
+}
+
+.selectedWire {
+  fill: none;
+  stroke: var(--dg-accent);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.grip {
+  fill: var(--dg-panel);
+  stroke: var(--dg-accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: all;
+  cursor: grab;
+}
+
+.grip:hover {
+  fill: var(--dg-accent);
+}
+
+.reconnectLine {
+  stroke: var(--dg-accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}

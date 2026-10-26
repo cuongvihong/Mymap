@@ -1,0 +1,132 @@
+.frame,
+.tile {
+  position: absolute;
+  z-index: -2;
+  border: 1px dashed var(--dg-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--dg-panel) 35%, transparent);
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.tile {
+  z-index: -1;
+  border-style: solid;
+  background: var(--dg-panel);
+}
+
+.dim {
+  opacity: var(--dg-dim);
+}
+
+.drop {
+  border-color: var(--dg-accent);
+  background: color-mix(in srgb, var(--dg-accent) 10%, transparent);
+}
+
+.label {
+  position: absolute;
+  top: -11px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  background: var(--dg-canvas);
+  color: var(--dg-ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.label b {
+  color: var(--dg-accent-ink);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.labelTitle {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labelBtn {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.label:hover .labelBtn,
+.labelBtn:focus-visible {
+  opacity: 1;
+}
+
+.labelBtn:hover {
+  background: var(--dg-panel-2);
+  color: var(--dg-ink);
+}
+
+.chevronClosed {
+  display: inline-flex;
+  transform: rotate(-90deg);
+}
+
+.tile .label {
+  top: 8px;
+  left: 10px;
+  padding: 0;
+  background: transparent;
+}
+
+.tile .labelBtn {
+  opacity: 1;
+}
+
+.tileTitle {
+  position: absolute;
+  right: 12px;
+  bottom: 9px;
+  left: 12px;
+  overflow: hidden;
+  color: var(--dg-ink-2);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleInput {
+  width: 180px;
+  padding: 1px 4px;
+  border: 1px solid var(--dg-accent);
+  border-radius: 4px;
+  background: var(--dg-canvas);
+  color: var(--dg-ink);
+  font: inherit;
+}
+
+.guides {
+  position: absolute;
+  z-index: 4;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.guides line {
+  stroke: var(--dg-accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}

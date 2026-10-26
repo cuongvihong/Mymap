@@ -1,0 +1,7 @@
+node_modules
+out
+dist
+.dev-app
+docs
+package-lock.json
+.sync

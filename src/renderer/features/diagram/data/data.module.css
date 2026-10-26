@@ -1,0 +1,76 @@
+.tools {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menu {
+  position: relative;
+}
+
+.menuButton {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--dg-line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dg-ink-2);
+  cursor: pointer;
+}
+
+.menuButton:hover,
+.menuButton[aria-expanded='true'] {
+  border-color: var(--dg-edge);
+  color: var(--dg-ink);
+}
+
+.menuButton[aria-pressed='true'] {
+  border-color: var(--dg-accent);
+  color: var(--dg-accent-ink);
+}
+
+.caret {
+  font-size: 10px;
+}
+
+.menuList {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--dg-line);
+  border-radius: 9px;
+  background: var(--dg-panel);
+  box-shadow: var(--dg-shadow);
+  list-style: none;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dg-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.menuItem:hover:not(:disabled),
+.menuItem:focus-visible {
+  background: var(--dg-panel-2);
+  outline: none;
+}
+
+.menuItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

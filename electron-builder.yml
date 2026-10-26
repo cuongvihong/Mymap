@@ -1,0 +1,32 @@
+# Packaging, TDD 12.
+appId: vn.mapapp.app
+productName: MapApp # FSD A-08
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - build/icon.png
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+npmRebuild: false
+publish: null # offline app, no auto update
+win:
+  target: dir
+  icon: build/icon.ico # the exe, the taskbar and shortcuts show this icon
+  # Only the native binary of this platform (the package carries macOS, musl and ARM ones too).
+  files:
+    - '!**/node_modules/better-sqlite3/prebuilds/darwin-*.node'
+    - '!**/node_modules/better-sqlite3/prebuilds/linux*.node'
+    - '!**/node_modules/better-sqlite3/prebuilds/win32-arm64.node'
+linux:
+  target: AppImage
+  icon: build/icon.png
+  files:
+    - '!**/node_modules/better-sqlite3/prebuilds/darwin-*.node'
+    - '!**/node_modules/better-sqlite3/prebuilds/win32-*.node'
+    - '!**/node_modules/better-sqlite3/prebuilds/linuxmusl-*.node'
+    - '!**/node_modules/better-sqlite3/prebuilds/linux-arm64.node'
+  category: Development
+  artifactName: MapApp.AppImage

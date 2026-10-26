@@ -1,0 +1,270 @@
+.block {
+  position: relative;
+  background: var(--dg-panel);
+  border: 1px solid var(--dg-line);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  color: var(--dg-ink);
+  user-select: none;
+  cursor: grab;
+  transition:
+    opacity 0.2s,
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  border-radius: 10px 0 0 10px;
+}
+
+.inner {
+  padding: 9px 12px 10px 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dg-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coverageRow {
+  margin-top: 8px;
+}
+
+.coverageOk,
+.coverageNone {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--dg-line);
+  border-radius: 999px;
+  background: var(--dg-panel-2);
+  color: var(--dg-ink-2);
+  font-size: 11px;
+}
+
+.coverageNone {
+  border-color: var(--dg-t-fail);
+  background: color-mix(in srgb, var(--dg-t-fail) 20%, var(--dg-panel-2));
+  color: #ffb1b0;
+}
+
+:global(.dg-root[data-theme='light']) .coverageNone {
+  color: #8f1b1a;
+}
+
+/* Ports: the dot on the right edge starts a channel, the one on the left only marks where one can end. */
+.port {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--dg-edge-hi);
+  background: var(--dg-panel);
+  opacity: 0.55;
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    background 0.15s;
+}
+
+.portOut {
+  cursor: crosshair;
+}
+
+.block:hover .port {
+  opacity: 1;
+}
+
+.portOut:hover {
+  background: var(--dg-accent);
+  transform: translate(50%, -50%) scale(1.3);
+}
+
+.portOk .port {
+  border-color: var(--dg-accent);
+  background: var(--dg-accent);
+  opacity: 1;
+}
+
+.portOk {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dg-accent) 55%, transparent);
+}
+
+.portBad {
+  opacity: 0.35;
+}
+
+.iconBtn {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dg-ink-2);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: var(--dg-panel-2);
+  color: var(--dg-ink);
+}
+
+.missing {
+  background: color-mix(in srgb, var(--dg-t-fail) 22%, transparent);
+  color: #ff8d8c;
+}
+
+.missing:hover {
+  background: color-mix(in srgb, var(--dg-t-fail) 34%, transparent);
+  color: #ffb1b0;
+}
+
+:global(.dg-root[data-theme='light']) .missing {
+  color: #a31f1e;
+}
+
+.chevronClosed {
+  display: inline-flex;
+  transform: rotate(-90deg);
+}
+
+.title {
+  margin: 3px 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: text;
+}
+
+.titleInput {
+  width: 100%;
+  margin: 2px 0 3px;
+  padding: 2px 5px;
+  border: 1px solid var(--dg-focus);
+  border-radius: 5px;
+  background: var(--dg-bg);
+  color: var(--dg-ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  user-select: text;
+}
+
+.body,
+.bodyOpen {
+  margin: 0;
+  color: var(--dg-ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.more {
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dg-accent-ink);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.more:hover {
+  text-decoration: underline;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.chip {
+  padding: 1px 7px;
+  border: 1px solid var(--dg-line);
+  border-radius: 999px;
+  background: var(--dg-panel-2);
+  color: var(--dg-ink-2);
+  font-size: 10.5px;
+}
+
+.fix {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--dg-line-soft);
+  color: var(--dg-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.fix b {
+  color: var(--dg-ink-2);
+  font-weight: 500;
+}
+
+.selected {
+  border-color: var(--dg-edge-hi);
+  box-shadow: 0 0 0 1px var(--dg-edge-hi);
+}
+
+.focus {
+  border-color: var(--dg-accent);
+  box-shadow: 0 0 0 2px var(--dg-accent);
+}
+
+.dim {
+  opacity: var(--dg-dim);
+}
+
+.collapsedBlock .inner {
+  padding-bottom: 8px;
+}
+
+.dropping {
+  outline: 2px dashed var(--dg-accent);
+  outline-offset: 3px;
+}
+
+/* Play is on this block: a glow in the colour of the scenario type. */
+.running {
+  border-color: var(--dg-run);
+  box-shadow:
+    0 0 0 2px var(--dg-run),
+    0 0 26px 4px color-mix(in srgb, var(--dg-run) 55%, transparent);
+}
+
+.forkTag {
+  flex: none;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--dg-accent);
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 16px;
+}

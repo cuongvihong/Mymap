@@ -1,0 +1,45 @@
+/*
+ * Design tokens.
+ *
+ * Part 1: the shared token names used by studyapp (TDD 9.1) [TH].
+ * studyapp was not available on the machine that built Session 01, so the names
+ * below follow TDD 9.1 and the values are chosen to match the light studyapp look.
+ * Reconcile the values with studyapp's tokens.css when the module is merged.
+ *
+ * Part 2 (the --dg- variables) moved to features/diagram/styles/dg-tokens.css so the module carries it.
+ */
+
+:root {
+  --bg: #efede8;
+  --surface: #ffffff;
+  --surface-2: #f3f1ec;
+  --line: #dcd8cf;
+  --line-soft: #ebe8e1;
+  --ink: #1d1c19;
+  --ink-2: #45423c;
+  --muted: #6f6b62;
+  --primary: #e2531c;
+  --focus: #2f63d6;
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --shadow: 0 10px 30px rgba(40, 30, 10, 0.14);
+  --font-ui: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
+/* MapApp shell only: the shared names follow the module theme inside .dg-root. A host such as studyapp keeps its own values. */
+.dg-root {
+  /* Remap the shared names so shell components follow the module theme. */
+  --bg: var(--dg-bg);
+  --surface: var(--dg-panel);
+  --surface-2: var(--dg-panel-2);
+  --line: var(--dg-line);
+  --line-soft: var(--dg-line-soft);
+  --ink: var(--dg-ink);
+  --ink-2: var(--dg-ink-2);
+  --muted: var(--dg-muted);
+  --primary: var(--dg-accent);
+  --focus: var(--dg-focus);
+  --shadow: var(--dg-shadow);
+}

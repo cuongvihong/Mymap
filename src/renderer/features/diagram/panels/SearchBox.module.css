@@ -1,0 +1,79 @@
+.box {
+  position: relative;
+  flex: 0 1 240px;
+  width: 240px;
+  min-width: 90px;
+}
+
+.input {
+  width: 100%;
+  padding: 5px 10px;
+  border: 1px solid var(--dg-line);
+  border-radius: 7px;
+  background: var(--dg-canvas);
+  color: var(--dg-ink);
+  font-size: 13px;
+}
+
+.input:focus-visible {
+  border-color: var(--dg-accent);
+  outline: 2px solid color-mix(in srgb, var(--dg-accent) 40%, transparent);
+  outline-offset: 0;
+}
+
+.list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 320px;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  border: 1px solid var(--dg-line);
+  border-radius: 8px;
+  background: var(--dg-panel);
+  box-shadow: var(--dg-shadow);
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--dg-ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.item code {
+  flex: none;
+  color: var(--dg-accent-ink);
+  font-family: var(--font-mono);
+}
+
+.on {
+  background: var(--dg-panel-2);
+}
+
+.bar {
+  flex: none;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.none {
+  padding: 8px;
+  color: var(--dg-muted);
+  font-size: 12px;
+}

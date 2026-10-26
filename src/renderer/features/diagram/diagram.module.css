@@ -1,0 +1,35 @@
+.workspace {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace > .stage {
+  flex: 1 1 0;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--dg-canvas);
+}
+
+.stage > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.placeholder {
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--dg-line);
+  border-radius: 8px;
+  background: var(--dg-panel);
+  color: var(--dg-ink-2);
+  font-size: 13px;
+}

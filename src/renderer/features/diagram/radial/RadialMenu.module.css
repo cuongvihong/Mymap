@@ -1,0 +1,58 @@
+.wheel {
+  position: absolute;
+  z-index: 9;
+  width: 260px;
+  height: 260px;
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  transition:
+    transform 120ms ease-out,
+    opacity 120ms;
+  pointer-events: none;
+  user-select: none;
+}
+
+.on {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+.slot {
+  transition: transform 100ms ease-out;
+  transform-origin: 130px 130px;
+}
+
+.hover {
+  transform: scale(1.07);
+}
+
+.centre {
+  position: absolute;
+  left: 130px;
+  top: 130px;
+  display: flex;
+  width: 84px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-50%, -50%);
+  color: var(--dg-ink);
+  font-size: 12px;
+  text-align: center;
+}
+
+.muted {
+  color: var(--dg-muted);
+}
+
+.soon {
+  color: var(--dg-muted);
+  font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel,
+  .slot {
+    transition: none;
+  }
+}

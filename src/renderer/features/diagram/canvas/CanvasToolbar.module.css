@@ -1,0 +1,61 @@
+.bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--dg-line);
+  border-radius: 10px;
+  background: var(--dg-panel);
+  box-shadow: var(--dg-shadow);
+}
+
+.bar button {
+  display: inline-flex;
+  min-width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dg-ink-2);
+  cursor: pointer;
+}
+
+.bar button:hover {
+  background: var(--dg-panel-2);
+  color: var(--dg-ink);
+}
+
+.bar button[aria-pressed='true'] {
+  background: var(--dg-panel-2);
+  color: var(--dg-accent-ink);
+}
+
+.clear {
+  margin-left: 4px;
+  border-left: 1px solid var(--dg-line) !important;
+  border-radius: 0 7px 7px 0 !important;
+  font-size: 12px;
+}
+
+.undo {
+  margin-left: 4px;
+  border-left: 1px solid var(--dg-line) !important;
+}
+
+.bar button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.bar button:disabled:hover {
+  background: transparent;
+  color: var(--dg-ink-2);
+}

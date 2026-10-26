@@ -1,0 +1,91 @@
+/*
+ * Tokens of the diagram module: every `--dg-*` variable and the two themes (dark is the default).
+ * DiagramPage imports this file, so the module brings its own look into any host (TDD 11).
+ */
+
+.dg-root {
+  /* canvas, taken from the approved demo */
+  --dg-canvas: #1a1b1f;
+  --dg-dot: #2c2e34;
+  --dg-panel: #202126;
+  --dg-panel-2: #272930;
+  --dg-line: #34373e;
+  --dg-ink: #ecebe7;
+  --dg-ink-2: #bdbab3;
+  /* TDD 9.2 gives #8c8981, which is 4.16:1 on --dg-panel-2 (hover rows). Raised to meet NFR-07. */
+  --dg-muted: #96938b;
+  --dg-edge: #5d6069;
+  --dg-edge-hi: #9aa0ab;
+  --dg-accent: #ff6c37;
+  --dg-dim: 0.22; /* opacity of blocks outside the lit set */
+  --dg-dim-edge: 0.16;
+
+  /* extra variables the demo uses, still in the --dg- namespace */
+  --dg-bg: #16171a;
+  --dg-line-soft: #2a2c32;
+  --dg-accent-ink: #ffb08f;
+  /* Text colours: the t- colours are for fills and strokes, these are readable as text (NFR-07). */
+  --dg-tx-ok: #6fbf45;
+  --dg-tx-warn: #d49a1c;
+  --dg-tx-fail: #ff7d7b;
+  --dg-focus: #7aa7ff;
+  --dg-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  /* block types: the colour bar on the left of a block */
+  --dg-t-fnc: #378add;
+  --dg-t-req: #7f77dd;
+  --dg-t-tech: #8f939c;
+  --dg-t-ext: #d85a30;
+  --dg-t-start: #ff6c37;
+  --dg-t-ok: #4f9a2a;
+  --dg-t-fail: #e24b4a;
+  --dg-t-warn: #d49a1c;
+  --dg-t-cond: #d4537e;
+  --dg-t-note: #c9b458;
+  --dg-t-end: var(--dg-t-ok);
+
+  /* via, the kind of a channel */
+  --dg-v-impl: #b5a642; /* dotted 2 4 */
+  --dg-v-rest: #378add;
+  --dg-v-webhook: #d85a30;
+  --dg-v-db: #8f939c;
+  --dg-v-ui: #1d9e75;
+  --dg-v-call: #8b7fe0;
+  --dg-v-redirect: #d4537e;
+  --dg-v-job: #c08a1e;
+  --dg-v-event: #e07b39;
+  --dg-v-queue: #9b6fe0;
+  --dg-v-file: #9c7a54;
+
+  /* scenarios */
+  --dg-s-pos: #4f9a2a;
+  --dg-s-neg: #e24b4a;
+  --dg-s-alt: #d49a1c;
+  --dg-s-edge: #9b6fe0;
+
+  color-scheme: dark;
+}
+
+.dg-root[data-theme='light'] {
+  --dg-bg: #efede8;
+  --dg-canvas: #f6f5f1;
+  --dg-dot: #d6d2c9;
+  --dg-panel: #ffffff;
+  --dg-panel-2: #f3f1ec;
+  --dg-line: #dcd8cf;
+  --dg-line-soft: #ebe8e1;
+  --dg-ink: #1d1c19;
+  --dg-ink-2: #45423c;
+  --dg-muted: #6f6b62;
+  --dg-edge: #a9a59c;
+  --dg-edge-hi: #5f5b53;
+  --dg-accent: #e2531c;
+  --dg-accent-ink: #a8390f;
+  --dg-tx-ok: #2f6f14;
+  --dg-tx-warn: #8a5a00;
+  --dg-tx-fail: #b3261e;
+  --dg-focus: #2f63d6;
+  --dg-shadow: 0 10px 30px rgba(40, 30, 10, 0.14);
+
+  color-scheme: light;
+}

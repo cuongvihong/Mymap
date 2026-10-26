@@ -1,0 +1,8 @@
+node_modules
+out
+dist
+.dev-app
+electron-data
+*.log
+.sync
+.DS_Store
