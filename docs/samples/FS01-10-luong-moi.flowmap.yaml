@@ -1,0 +1,1230 @@
+# Bản đồ chức năng dựng từ FS01 đến FS10 (thiếu FS07, không có trong thư mục).
+# Luồng e-Service mới, theo userflow đề xuất 24/10/2026.
+# Nguồn: FS01.md, FS02.md, FS03.md, FS04.md, FS05.md, FS06.md, FS08.md, FS09.md, FS10.md
+flowmap: 1
+project: {name: 'MOE Education Account và FAS (e-Service luồng mới)', docs_root: 'D:\AIQA\Agileproject\roles\ba'}
+groups:
+- {id: R1, title: Education Account Lifecycle, fs: FS01.md}
+- {id: R2, title: Top-Up Management, fs: FS02.md}
+- {id: R3, title: 'School, Student và Fee', fs: FS03.md}
+- {id: R4, title: Đơn FAS và Scheme FAS, fs: FS04.md}
+- {id: R5, title: Đơn giấy (Paper Applications), fs: FS05.md}
+- {id: R6, title: FAS Budget và Statistics, fs: FS06.md}
+- {id: R8, title: 'Parent Portal: SingPass, EA, Profile', fs: FS08.md}
+- {id: R9, title: Outstanding Fees và Payment, fs: FS09.md}
+- {id: R10, title: Phụ huynh nộp đơn FAS, fs: FS10.md}
+nodes:
+- {id: JOB, type: start, subtype: schedule, group: R1, code: Start, title: Job đồng bộ hằng ngày, body: 'Chạy 00:00 giờ Singapore, kể cả cuối tuần và ngày lễ. Lần đầu chạy Initial Sync.', fix: Scheduler của job đồng bộ, section: §1.1.2}
+- {id: S3H, type: start, subtype: user, group: R3, code: Start, title: HQ mở màn quản lý School, body: 'HQ User tạo School và School User, sau đó School User cấu hình lớp và nhập học sinh.', fix: 'Admin Portal, menu School', section: §2 F01 đến F02}
+- {id: S2H, type: start, subtype: user, group: R2, code: Start, title: HQ User mở menu Top-up, body: 'Admin Portal có ba tab: Individual Top-Up, Bulk Campaigns, Top-Up History. Chỉ MOE HQ User có quyền, School User không thấy menu.', fix: 'Admin Portal, menu Top-up', section: '§3.1.1, BR-F2-01'}
+- {id: S4U, type: start, subtype: user, group: R4, code: Start, title: Admin mở Financial assistance, body: School Admin mở FAS applications và SBFAS schemes. MOE HQ mở FAS applications (chỉ xem) và MOEFAS schemes., fix: 'Admin Portal, menu Financial assistance', section: '§3, §7'}
+- {id: JFC, type: start, subtype: schedule, group: R4, code: Start, title: Form MOEFAS đóng, body: Tự chạy vào cuối ngày Form closes của scheme MOEFAS. Prototype có nút Close form now (demo) để chạy sớm., fix: Job xếp hạng và quyết định MOEFAS, section: '§2.2, §7.5'}
+- {id: S5U, type: start, subtype: user, group: R5, code: Start, title: School user mở Upload applications, body: School user nhập Mẫu đơn FAS in sẵn mà phụ huynh điền tay. Chỉ nhận đơn khi có form FAS đang mở., fix: 'Admin Portal, menu Upload applications', section: '§1, §3'}
+- {id: S6U, type: start, subtype: user, group: R6, code: Start, title: User mở Budget và Statistics, body: 'MOE HQ User quản lý MOEFAS, School User quản lý SBFAS của trường mình. Mỗi người chỉ thấy dữ liệu trong phạm vi của mình.', fix: 'Admin Portal, trang ngân sách và thống kê', section: §1.1}
+- {id: STP, type: start, subtype: user, group: R8, code: Start, title: Parent mở e-Service, body: 'Vào Landing page, chọn Log in with SingPass.', fix: 'e-Service Portal, Landing page', section: §3 bước 1}
+- id: F1A
+  type: fnc
+  group: R1
+  code: R1 · F01
+  title: Tạo Education Account tự động
+  body: Lấy công dân Singapore từ Government API, kiểm tra dữ liệu bắt buộc và trùng theo NRIC, tạo Student Profile và EA trạng thái Active, số dư SGD 0.00.
+  fix: Job đồng bộ, bước kiểm tra dữ liệu bắt buộc và chống trùng
+  chips: [Daily job, Mock Gov API, NRIC]
+  section: §1.1.4 đến §1.1.11
+- id: F1B
+  type: fnc
+  group: R1
+  code: R1 · F02
+  title: Kiểm tra và đóng EA
+  body: Mọi thao tác backend chạm vào EA đều gọi kiểm tra này trước. Đủ 16 tuổi hoặc mất quốc tịch thì đóng. Còn số dư thì hoãn đóng vì chưa có chuyển CPF.
+  fix: Hàm Closure Eligibility Check dùng chung cho mọi API đọc hoặc ghi EA
+  chips: [Closure check, Mock Gov API]
+  section: §1.2
+- id: F2A
+  type: fnc
+  group: R2
+  code: R2 · F2.1
+  title: Tìm và xác minh chủ tài khoản
+  body: HQ User nhập Account Number hoặc NRIC đầy đủ, khớp chính xác, không tìm gần đúng. Hiện tên, NRIC che một phần, tuổi, trạng thái và số dư. EA không Active vẫn xem được nhưng không nhập được số tiền.
+  fix: Màn SCR-01, SCR-02, API tìm EA
+  chips: [MSG-0201, MSG-0204]
+  section: §3.1.2 bước 1, BR-F2-02
+- id: F2B
+  type: fnc
+  group: R2
+  code: R2 · F2.2
+  title: Top-up lẻ cho một EA
+  body: Nhập số tiền lớn hơn 0, tối đa 2 chữ số thập phân, xem lại rồi xác nhận. Tạo transaction có Reference ID, ghi có số dư một lần, ghi audit. Thất bại thì số dư không đổi.
+  fix: Màn SCR-02 đến SCR-04, service ghi có và chống ghi trùng
+  chips: [Reference ID, Audit log, SGD]
+  section: §3.1.2 bước 2 đến 3, BR-F2-03 đến 06
+- id: F2C
+  type: fnc
+  group: R2
+  code: R2 · F2.3
+  title: Top-Up History và Top-Up Summary
+  body: Liệt kê top-up lẻ và top-up từ bulk, lọc theo nguồn, trạng thái, tên học sinh. Ba thẻ Total Spending, Successful, Failed tính theo bộ lọc. Chỉ để xem, không chặn ghi có.
+  fix: Màn SCR-05, SCR-11, SCR-12, API tổng hợp Summary
+  chips: [Export CSV, Summary]
+  section: §3.1.1, BR-F2-07
+- id: F2D
+  type: fnc
+  group: R2
+  code: R2 · F2.4
+  title: Cấu hình Campaign
+  body: 'Tạo và sửa campaign: tên, criterion tùy chọn (Age Range 7 đến 15, Account Balance) và số tiền cố định mỗi tài khoản. Lưu ở trạng thái Draft, mã CMP-YYYY-NNNN. Criterion kết hợp bằng AND.'
+  fix: Màn SCR-07, SCR-08, service campaign
+  chips: [Draft, RowVersion]
+  section: §3.1.1, BR-F2-13 đến 18
+- id: F2E
+  type: fnc
+  group: R2
+  code: R2 · F2.5
+  title: Preview danh sách eligible
+  body: 'Hiện các EA Active thỏa criterion tại thời điểm xem: tên, tuổi, số dư, số tiền dự kiến, tổng số tài khoản và tổng tiền. Chỉ tham khảo, không có nút Confirm, không bắt buộc trước khi chạy.'
+  fix: Màn SCR-09, truy vấn danh sách eligible
+  chips: [Chỉ đọc]
+  section: §3.1.1, BR-F2-19
+- id: F2F
+  type: fnc
+  group: R2
+  code: R2 · F2.6
+  title: Run Campaign
+  body: Bấm Run Campaign ở danh sách thì tạo ngay một batch (Pending rồi Running). Lần đầu chuyển campaign từ Draft sang Active. Không eligible thì báo MSG-0214 và không tạo batch.
+  fix: Nút Run Campaign ở SCR-07, service tạo batch
+  chips: [Chống bấm đúp, MSG-0215]
+  section: §3.1.1, BR-F2-20 đến 22
+- id: F2G
+  type: fnc
+  group: R2
+  code: R2 · F2.7
+  title: Thực thi batch và theo dõi
+  body: 'Xử lý từng EA theo Account Number tăng dần, theo từng đoạn nhỏ: kiểm tra EA còn Active, đánh giá lại criterion, ghi có. Kết quả mỗi EA là Successful hoặc Failed. Batch tiếp tục sau khi server khởi động lại.'
+  fix: Worker chạy batch, bảng topup_run_items
+  chips: [Resume, Batch summary, Audit log]
+  section: §3.1.1, BR-F2-24 đến 30
+- id: F3A
+  type: fnc
+  group: R3
+  code: R3 · F01 đến F07
+  title: Quản lý trường, lớp, học sinh
+  body: HQ tạo School và School User. School User tạo Level, Class, nhập Student và gán vào lớp. Chuyển lớp, chuyển trường do HQ cập nhật.
+  fix: Admin Portal, các màn School, Class, Student
+  chips: [Admin Portal, Enrolment]
+  section: §2 F01 đến F07
+- id: F3B
+  type: fnc
+  group: R3
+  code: R3 · F08
+  title: Liên kết học sinh với EA
+  body: Học sinh Singaporean được gán vào lớp thì hệ thống tìm EA do R1 tạo và liên kết. Liên kết một lần, không đổi số dư.
+  fix: Bước sau khi tạo enrolment. Chưa chốt cách xử lý khi EA chưa có hoặc đã đóng (Q16)
+  chips: [Tự động sau enrolment]
+  section: §2 F08
+- id: F3C
+  type: fnc
+  group: R3
+  code: R3 · F09 đến F11
+  title: Cấu hình loại phí, component, mức phí
+  body: HQ tạo Fee Type, Fee Component với điều kiện nhận phí (Eligibility) và Rate Rule. Là dữ liệu nền cho việc phát hành phí.
+  fix: Admin Portal, các màn Fee Type, Fee Component, Rate
+  chips: [Admin Portal, GST]
+  section: §2 F09 đến F11
+- id: F3D
+  type: fnc
+  group: R3
+  code: R3 · F12 đến F14
+  title: Phát hành phí và tìm người nhận
+  body: HQ tạo Fee Publication, chọn đối tượng nhận. Hệ thống lấy enrolment hiệu lực tại eligibility_date để tìm học sinh nhận phí.
+  fix: Màn Fee Publication, service Recipient Resolution
+  chips: [Publication, Recipient]
+  section: §2 F12 đến F14
+- id: F3E
+  type: fnc
+  group: R3
+  code: R3 · F15
+  title: Sinh và quản lý Student Charge
+  body: 'Sinh Student Charge cho từng người nhận: DRAFT rồi POSTED, có thể VOID. Chỉ charge POSTED mới hiện cho phụ huynh.'
+  fix: Service sinh charge, bảng student_charges. Nhiều điểm chờ khách hàng trả lời (Q02 đến Q19)
+  chips: [Charge, GST]
+  section: §2 F15
+- id: F3F
+  type: fnc
+  group: R3
+  code: R3 · FL-F09, FL-F10
+  title: Import CSV và xem tổng quan ghi danh
+  body: School User import CSV để tạo cấu trúc học vụ, học sinh, gán lớp, có Import Preview và kết quả lỗi. Enrolment Overview cho School, HQ và Parent xem theo quyền. Hoãn sang sprint sau.
+  fix: Chức năng bổ sung theo Feature List, trạng thái Deferred
+  chips: [Deferred]
+  section: §5
+- id: F4A
+  type: fnc
+  group: R4
+  code: R4 · F4 §3 §4
+  title: Danh sách đơn FAS
+  body: MOE HQ thấy đơn của mọi trường (chỉ xem). School Admin chỉ thấy đơn SBFAS của học sinh đang học tại trường, không thấy MOEFAS. Có tab, bộ lọc, thẻ thống kê, Export CSV, drawer chi tiết.
+  fix: Màn FAS applications, drawer chi tiết
+  chips: [10 dòng/trang, Export CSV]
+  section: §3, §4
+- id: F4B
+  type: fnc
+  group: R4
+  code: R4 · F4 §2.1
+  title: Phân luồng đơn lúc nộp
+  body: Nhận đơn từ F5 và F10. Chỉ cho nộp khi form MOEFAS hoặc SBFAS của trường đang mở. Nhóm quốc tịch ngoài scheme MOEFAS thì thành SBFAS Pending ngay. Còn lại là MOEFAS Pending, System check Waiting.
+  fix: Service tiếp nhận đơn, phân luồng
+  chips: [Pending, Waiting]
+  section: §2.1
+- id: F4C
+  type: fnc
+  group: R4
+  code: R4 · F4 §2.2
+  title: Xếp hạng và duyệt MOEFAS tự động
+  body: 'Khi form đóng, xếp hạng đơn Pending theo PCI thấp nhất, rồi GHI thấp nhất, rồi nộp sớm nhất. Xét lần lượt: đạt thì Approved, không đạt thì SBFAS Pending (nếu phụ huynh đồng ý) hoặc Rejected. Gửi email kết quả.'
+  fix: Job xếp hạng và quyết định sau khi form MOEFAS đóng
+  chips: [Priority n of N, Auto]
+  section: §2.2
+- id: F4E
+  type: fnc
+  group: R4
+  code: R4 · F4 §6
+  title: Trường duyệt hoặc từ chối SBFAS
+  body: School Admin xem drawer, chọn tier (một scheme SBFAS của trường) rồi Approve, hoặc Reject kèm lý do và ghi chú. Quyết định đầu tiên là quyết định cuối. Phụ huynh nhận email.
+  fix: Hộp thoại Approve SBFAS, Reject
+  chips: [Comment 500, Tier]
+  section: §2.3, §6
+- id: F4F
+  type: fnc
+  group: R4
+  code: R4 · F4 §7
+  title: Quản lý scheme FAS
+  body: MOE HQ quản lý scheme MOEFAS, mỗi trường quản lý scheme SBFAS (mỗi tier một scheme). Wizard 3 bước General, Eligibility, Subsidy, lưu Draft rồi Publish. Form phải đóng trước khi scheme có hiệu lực.
+  fix: Màn MOEFAS schemes, SBFAS schemes và wizard
+  chips: [Wizard 3 bước, Publish]
+  section: §7.1 đến 7.3
+- id: F4G
+  type: fnc
+  group: R4
+  code: R4 · F4 §7.4
+  title: Add fee vào scheme đã publish
+  body: Thêm fee component vào scheme Active hoặc Upcoming, dùng cho khoản phí phát sinh cuối năm. Không xoá hay sửa component đã có. Áp trợ cấp cho các khoản phí đang mở của học sinh đã được cấp scheme.
+  fix: Hộp thoại Add fee
+  chips: [Active, Upcoming]
+  section: §7.4
+- id: F4H
+  type: fnc
+  group: R4
+  code: R4 · F4 §8
+  title: Áp trợ cấp sau quyết định
+  body: Khi Approved, áp trợ cấp theo cấp (MOEFAS) hoặc theo khối (SBFAS) lên các khoản phí chưa trả trong kỳ hiệu lực và phí phát hành sau. Cập nhật thẻ thống kê, đơn chuyển sang chỉ đọc.
+  fix: Service áp trợ cấp lên Student Charge
+  chips: [Effective from]
+  section: §8
+- id: F5A
+  type: fnc
+  group: R5
+  code: R5 · §3 §4
+  title: Upload scans và đọc bản scan
+  body: Thêm tối đa 5 file PDF, JPG, PNG (10 MB mỗi file) cho một đơn. Bấm Upload and read thì đọc mẫu đơn, tô vàng các trường không chắc chắn. Engine OCR thật nằm ngoài phạm vi, prototype mô phỏng.
+  fix: Danh sách Upload applications, hộp thoại Upload scans
+  chips: [PDF/JPG/PNG, 10 MB, 5 file]
+  section: §3, §4
+- id: F5B
+  type: fnc
+  group: R5
+  code: R5 · §5
+  title: Review application, Part 1 đến 5
+  body: Nhập NRIC người khai và từng con thì tự điền từ hồ sơ rồi khoá. Khai thành viên gia đình, context, cam kết. Tra thu nhập từ dữ liệu Chính phủ, hiện GHI và PCI. Có Save draft và Discard.
+  fix: Màn Review application
+  chips: [Tự điền, GHI/PCI]
+  section: §5, BR3, BR4
+- id: F5C
+  type: fnc
+  group: R5
+  code: R5 · §6
+  title: Kiểm tra hợp lệ trước khi nộp
+  body: Chặn khi thiếu trường bắt buộc, con ngoài 7 đến 16 tuổi, con đã có đơn trong năm, không con nào học tại trường, trùng NRIC, hoặc không có form FAS nào đang mở.
+  fix: Bước Review and submit
+  chips: [Ghi chú đỏ]
+  section: §6
+- id: F5D
+  type: fnc
+  group: R5
+  code: R5 · §7
+  title: Review before submitting và nộp
+  body: Hộp thoại xem lại Applicant, Children, Household, Context. Confirm and submit tạo một đơn cho mỗi con (nguồn Paper, chung mã gia đình), phân luồng theo F4, xoá bản nháp.
+  fix: Hộp thoại Review before submitting
+  chips: [BR7, Mỗi con một đơn]
+  section: §2 bước 5, §7
+- id: F5E
+  type: fnc
+  group: R5
+  code: R5 · §8
+  title: Xem và sửa đơn đã nộp
+  body: Mở View application chỉ đọc. Chỉ Edit được khi đơn còn Pending. Save changes ghi History Paper application edited. Luồng quyết định không chạy lại.
+  fix: Màn View application
+  chips: [Chỉ khi Pending]
+  section: §8
+- id: F6A
+  type: fnc
+  group: R6
+  code: R6.1.1 đến R6.1.3
+  title: Thiết lập và xem ngân sách
+  body: 'MOE HQ User nhập Budget Amount cho MOEFAS, School User cho SBFAS của trường mình. Hệ thống lưu và hiện Budget Amount đã cấu hình. Còn chờ chốt: kỳ ngân sách, chỉnh sửa, lịch sử.'
+  fix: Màn Manage Budget, bảng ngân sách theo FAS Type và School
+  chips: [Budget Amount, 'Chờ chốt G1, G2']
+  section: §5.1 đến 5.3
+- id: F6B
+  type: fnc
+  group: R6
+  code: R6.2.1 đến R6.2.3
+  title: Thống kê subsidy đã granted
+  body: Tổng hợp Total Subsidy Amount Granted theo loại FAS trong phạm vi người dùng. Cách tính (Grant Amount hay số đã chi) và các cột bảng chưa chốt.
+  fix: Trang Subsidy Statistics
+  chips: ['Chờ chốt G4, G5']
+  section: §5.4 đến 5.6
+- id: F6C
+  type: fnc
+  group: R6
+  code: R6.3.1 đến R6.3.3
+  title: Theo dõi sử dụng ngân sách
+  body: Hiện Budget Amount, Subsidy Amount Used, Remaining Budget đề xuất bằng Budget Amount trừ Subsidy Amount Used. Budget gần hết hoặc hết thì cảnh báo nhưng không chặn grant.
+  fix: Trang Budget Tracking
+  chips: [Remaining, Chỉ cảnh báo]
+  section: §5.7 đến 5.9, R6-11
+- id: F8A
+  type: fnc
+  group: R8
+  code: R8 · FR-08.1
+  title: Đăng nhập SingPass
+  body: SingPass trả NRIC. Hệ thống gọi API dữ liệu theo NRIC để lấy Parent và các con, lần đầu thì tạo tài khoản, rồi cập nhật dữ liệu mới nhất của Parent đó.
+  fix: Luồng đăng nhập e-Service, lớp tích hợp SingPass và API dữ liệu
+  chips: [SingPass mock, Timeout 10 giây]
+  section: §5 FR-08.1
+- id: F8B
+  type: fnc
+  group: R8
+  code: R8 · FR-08.2
+  title: Home và xem EA của con
+  body: 'Mỗi con một thẻ Edu Account: tên, mã EA, số dư. Chọn thẻ để mở Edu Account Detail. Top-up hiện là Money in. Con đủ 16 tuổi chỉ được xem. Menu toàn cục: Home, Đơn FAS, Hồ sơ phụ huynh.'
+  fix: e-Service Portal, màn Home. Luồng mới theo bản đề xuất 24/10/2026
+  chips: [e-Service, Đề xuất mới]
+  section: §5 FR-08.2, §6.1, §6.2; UX 24/10/2026
+- id: F8C
+  type: fnc
+  group: R8
+  code: R8 · FR-08.3
+  title: Sửa My details
+  body: Parent sửa số điện thoại, email, địa chỉ nhận thư. Họ tên, NRIC, địa chỉ cư trú lấy từ SingPass nên chỉ đọc.
+  fix: e-Service Portal, màn My details
+  chips: [Audit log]
+  section: §5 FR-08.3
+- id: F8D
+  type: fnc
+  group: R8
+  code: UX · Đề xuất
+  title: Edu Account Detail, điểm bắt đầu của từng con
+  body: 'Trang trung tâm của một con: thông tin tài khoản và số dư EA. Từ đây chọn việc cần làm: xem biến động EA, trả phí, hoặc (tương lai) hóa đơn và thanh toán. Breadcrumb Home, tên con và mã EA, Back về đúng trang này.'
+  fix: Trang mới /accounts/:accountId, dùng danh sách tài khoản và wallet balance hiện có. Chưa triển khai
+  chips: [Đề xuất 24/10/2026, Hub]
+  section: Userflow §01
+- id: F8E
+  type: fnc
+  group: R8
+  code: UX · Đề xuất
+  title: Hoạt động số dư EA của một con
+  body: Ghi có và ghi nợ ví của con đã chọn, dùng lịch sử EA hiện có, có phân trang. Chỉ thể hiện bút toán ví, không suy ra nguồn Online và không gọi là toàn bộ invoice payments.
+  fix: Tái dùng /transactions?student=...
+  chips: [Đề xuất, Một con]
+  section: Userflow §01, §03
+- id: F8F
+  type: fnc
+  group: R8
+  code: UX · Đề xuất
+  title: Hoạt động EA gần đây của các con
+  body: Lối tắt phụ từ Home, xem gộp nhiều con, mỗi dòng có tên con và mã EA. Chọn tên con để sang lịch sử của con đó. Phạm vi là dữ liệu đã tải (tối đa 100 bút toán mỗi tài khoản), không tuyên bố là toàn bộ lịch sử.
+  fix: Tái dùng /transactions, đổi vai trò thành màn tổng hợp
+  chips: [Đề xuất, Tối đa 100/tài khoản]
+  section: Userflow §01, §04
+- id: F9A
+  type: fnc
+  group: R9
+  code: R9 · F9.1, F9.2
+  title: Xem invoice chưa trả
+  body: Liệt kê con đã liên kết, hiện invoice Issued của con kèm số dư EA. Mỗi dòng invoice là một Student Charge của R3.
+  fix: e-Service Portal, màn chọn con và danh sách phí
+  chips: [SCR-01, SCR-02]
+  section: §3.1.2 bước 1 đến 3
+- id: F9B
+  type: fnc
+  group: R9
+  code: R9 · F9.3
+  title: Chọn cách thanh toán
+  body: EA, Online hoặc Both (chia đôi), hiện rõ số tiền của từng nguồn. Số dư EA nhỏ hơn số phải trả thì tắt lựa chọn chỉ EA và đề xuất chia đôi, phần EA bằng toàn bộ số dư.
+  fix: e-Service Portal, màn chọn phương thức và xác nhận
+  chips: [SCR-04, SCR-05]
+  section: §3.1.2 bước 4 đến 6
+- id: F9C
+  type: fnc
+  group: R9
+  code: R9 · F9.4
+  title: Trả bằng EA
+  body: Gọi sổ cái Function 1 trừ tiền một lần theo FundingReference. Thành công thì invoice Paid, lỗi thì invoice về Issued.
+  fix: Nhánh EA trong service thanh toán
+  chips: [Idempotency key]
+  section: §3.1.2 bước 6, BR-F9-03
+- id: F9D
+  type: fnc
+  group: R9
+  code: R9 · F9.5, F9.6
+  title: Trả online và nhận kết quả
+  body: Tạo phiên thanh toán ở provider sandbox. Kết quả về qua webhook ký HMAC, kèm job hỏi lại provider cho các nhánh còn Pending.
+  fix: Nhánh online, endpoint webhook và job đối soát
+  chips: [Webhook HMAC, Sandbox]
+  section: §3.1.2 bước 6, 7, BR-F9-06
+- id: F9E
+  type: fnc
+  group: R9
+  code: R9 · F9.7
+  title: Kết quả, biên lai, hoàn EA
+  body: Mọi nhánh thành công thì Paid. Biên lai hiện mã invoice, tổng tiền, phương thức và số tiền từng nguồn (ví dụ 100 = EA 60 + Online 40), có đường quay về Edu Account Detail hoặc khoản phí của đúng con. Chia đôi mà online hỏng thì hoàn phần EA. Kết quả không rõ hoặc hoàn lỗi thì ReconciliationRequired.
+  fix: Màn kết quả và job xử lý reversal
+  chips: [SCR-06, SCR-07, SCR-08]
+  section: §3.1.2 bước 7, Phụ lục A
+- id: F10A
+  type: fnc
+  group: R10
+  code: R10 · §3 §10
+  title: Trang Financial assistance và bản nháp
+  body: Apply for FAS khi chưa có nháp, Resume draft hoặc Discard draft khi đã có. Apply bị khoá khi mọi con đã 16 tuổi, đã có đơn Pending, hoặc không có form FAS nào đang mở. Mỗi phụ huynh một bản nháp.
+  fix: e-Service, trang Financial assistance
+  chips: [1 nháp mỗi phụ huynh]
+  section: §3, §10
+- id: F10B
+  type: fnc
+  group: R10
+  code: R10 · §4
+  title: Bước 1 Children
+  body: Thông tin phụ huynh tự điền, chỉ đọc. Chọn quan hệ với con và các con nộp đơn. Con bị khoá khi 16 tuổi, đã có đơn đang xét, hoặc form đã đóng.
+  fix: Wizard bước 1
+  chips: [Quan hệ bắt buộc]
+  section: §4, BR1, BR2
+- id: F10C
+  type: fnc
+  group: R10
+  code: R10 · §5
+  title: Bước 2 Household và thu nhập
+  body: Phụ huynh, vợ hoặc chồng và các con tự có trong bảng. Thêm thành viên khác (tên, NRIC, giới tính). Thu nhập lấy từ dữ liệu Chính phủ, không tự khai. Hiện GHI, số người, PCI và hoàn cảnh hộ cho engine chấm điểm.
+  fix: Wizard bước 2
+  chips: [Gov income, GHI/PCI]
+  section: §5, BR3
+- id: F10D
+  type: fnc
+  group: R10
+  code: R10 · §6 §7
+  title: Bước 3 Documents và bước 4 Context
+  body: Tài liệu tuỳ chọn (PDF hoặc ảnh, 5 MB mỗi file), ô tick cũng xét SBFAS khi không đủ MOEFAS (mặc định tick). Context tối đa 2000 ký tự, người xét đơn thấy ở F4.
+  fix: Wizard bước 3 và 4
+  chips: [5 MB, 2000 ký tự]
+  section: §6, §7
+- id: F10E
+  type: fnc
+  group: R10
+  code: R10 · §8
+  title: Bước 5 Review và Submit
+  body: Xem lại Applicant, Children, Household, What happens next, Context. Tick xác nhận rồi Submit application, tạo một đơn cho mỗi con (chung mã FAM-YYYY-NNNNN), phân luồng theo F4, xoá nháp.
+  fix: Wizard bước 5
+  chips: [Xác nhận bắt buộc, FAM-YYYY-NNNNN]
+  section: §8, BR4, BR7
+- id: F10F
+  type: fnc
+  group: R10
+  code: R10 · §9
+  title: My applications và timeline
+  body: Mỗi đơn gia đình một thẻ. Mỗi con có timeline Submitted, System check, Review, Decision. Pending hiện là Under review. Phụ huynh nhận email sau mỗi quyết định.
+  fix: Trang My applications
+  chips: [Timeline, Email]
+  section: §9, BR8
+- id: F9F
+  type: fnc
+  group: R9
+  code: UX · Tương lai
+  title: Hóa đơn và thanh toán (tương lai)
+  body: 'Kho lịch sử: mỗi invoice một dòng gồm Invoice, Số tiền, Ngày thanh toán, Phương thức. Mở dòng để xem payment và các nguồn tiền bên trong (Education Account, Online gateway). Chưa hiện menu vì chưa có nguồn danh sách payment đầy đủ.'
+  fix: Nhánh nét đứt, cần danh sách có liên kết invoice, payment, con, funding sources
+  chips: [Tương lai, Chưa có nguồn dữ liệu]
+  section: Userflow §03, §04
+- {id: Q4B, type: req, group: R4, code: BR1, title: Chỉ nộp khi có form đang mở, body: Chỉ nộp được đơn khi form MOEFAS hoặc form SBFAS của trường học sinh đang mở. Áp dụng cho F5 và F10., section: §9 BR1}
+- {id: Q4A, type: req, group: R4, code: BR2, title: MOEFAS chỉ do hệ thống quyết định, body: 'Sau khi form MOEFAS đóng, theo thứ tự PCI thấp nhất, rồi GHI thấp nhất, rồi nộp sớm nhất. Không người dùng nào duyệt hay từ chối MOEFAS.', section: §9 BR2}
+- {id: Q4C, type: req, group: R4, code: BR3, title: Form đóng trước khi scheme có hiệu lực, body: Effective from phải sau Form closes., section: §9 BR3}
+- {id: Q2A, type: req, group: R2, code: BR-F2-04, title: Chỉ EA Active nhận top-up, body: 'EA Closed bị từ chối, số dư không đổi, transaction Failed được ghi log.', section: §3.1.1 BR-F2-04}
+- {id: Q2B, type: req, group: R2, code: DA-14, title: Mỗi campaign một batch Running, body: 'Khi batch đang Running, Run Campaign và Edit của campaign bị vô hiệu (MSG-0215).', section: §1.3 DA-14}
+- {id: Q6A, type: req, group: R6, code: 'BR6.06, R6-11', title: Hết budget không chặn grant, body: 'Budget gần hết hoặc hết chỉ cảnh báo, không chặn việc grant.', section: '§3, §2'}
+- id: GOV
+  type: ext
+  group: R1
+  code: External
+  title: Government Citizen API (mock)
+  body: NRIC, ngày sinh, quốc tịch, NRIC cha mẹ, thu nhập (CPF) của người khai và thành viên hộ. Dùng ở R1, R5, R8, R10.
+  fix: Lớp tích hợp Government API
+  chips: [Mock Sprint 1]
+  fs: FS01.md
+  section: FS01 §1.1.2, FS05 BR4, FS10 BR3
+- {id: SGP, type: ext, group: R8, code: External, title: SingPass (mock), body: 'Xác thực Parent, trả NRIC, họ tên, địa chỉ cư trú.', fix: Lớp tích hợp SingPass, fs: FS08.md, section: §2.4}
+- {id: PRV, type: ext, group: R9, code: External, title: Online Payment Provider, body: 'Sandbox giả lập success, failure, cancel. Gửi kết quả qua webhook.', fix: Cấu hình provider sandbox, fs: FS09.md, section: '§1.2, DA-01'}
+- {id: DEA, type: tech, subtype: database, group: R1, code: Database, title: Student Profile và Education Account, body: 'Hồ sơ học sinh, mã EA, trạng thái, số dư. Liên kết qua Student id.', fix: 'Bảng Student Profile, Education Account', fs: FS01.md, section: FS01 §1.1.8}
+- {id: DCH, type: tech, subtype: database, group: R3, code: Database, title: Student Charge, body: 'Khoản phải thu: base, tax, total, trạng thái DRAFT, POSTED, VOID. FS09 gom các charge thành invoice.', fix: Bảng student_charges. Chưa có cột trạng thái thanh toán (Q19), fs: FS03.md, section: 'FS03 F15, FS09 DA-05'}
+- {id: DPR, type: tech, subtype: database, group: R8, code: Database, title: Parent_Profile, body: 'Thông tin Parent, liên kết với con qua NRIC cha hoặc mẹ.', fix: Bảng Parent_Profile, fs: FS08.md, section: FS08 Phụ lục A}
+- id: LDG
+  type: tech
+  subtype: api
+  group: R1
+  code: R1 · Sổ cái EA
+  title: 'Sổ cái EA: ghi nợ và hoàn'
+  body: 'API của Function 1: trừ số dư và ghi sổ cái nguyên tử, hoàn khi giao dịch không xong. Idempotent theo FundingReference.'
+  fix: Service sổ cái EA của Function 1
+  chips: [Chưa chốt (OQ-05)]
+  fs: FS09.md
+  section: FS09 DA-02, BR-F9-03
+- {id: DTX, type: tech, subtype: database, group: R9, code: Database, title: 'Invoice, Transaction, Funding leg', body: Mỗi lần trả là một transaction với nhánh EA và nhánh online. Một invoice chỉ có một giao dịch đang mở., fix: 'Bảng invoice, transaction, funding leg', fs: FS09.md, section: 'FS09 §4.2, BR-F9-09'}
+- {id: DTU, type: tech, subtype: database, group: R2, code: Database, title: Top-Up Transaction, body: 'Bảng topup_transactions: Reference duy nhất, nguồn Individual hoặc Bulk, số tiền, trạng thái Pending, Success, Failed, lý do lỗi.', fix: Bảng topup_transactions, fs: FS02.md, section: FS02 §4.2}
+- {id: DCP, type: tech, subtype: database, group: R2, code: Database, title: 'Campaign, Criterion, Batch, Batch Item', body: 'Bảng topup_campaigns, topup_campaign_criteria, topup_campaign_runs, topup_run_items. Batch giữ snapshot số tiền và phiên bản định nghĩa lúc chạy.', fix: Bốn bảng topup_*, fs: FS02.md, section: FS02 §4.2}
+- {id: DAL, type: tech, subtype: database, group: R2, code: Database, title: Audit log, body: 'Ghi người thực hiện, hành động, đối tượng, giá trị cũ và mới, thời điểm. Lưu vĩnh viễn, không xoá cứng.', fix: Bảng AuditLog, fs: FS02.md, section: FS02 BR-F2-30}
+- {id: DAP, type: tech, subtype: database, group: R4, code: Database, title: FAS Application và History, body: 'Đơn FAS (APP-YYYY-NNNNN), nguồn Paper hoặc Online, mã gia đình, trạng thái Pending, Approved, Rejected, quyết định, hạng ưu tiên, context và History.', fix: 'Bảng đơn FAS, History, quyết định', fs: FS04.md, section: 'FS04 §2, §3'}
+- {id: DSC, type: tech, subtype: database, group: R4, code: Database, title: FAS Scheme và Subsidy, body: 'Scheme MOEFAS và SBFAS: thời gian mở form, thời gian hiệu lực, điều kiện (quốc tịch, GHI, PCI), trợ cấp theo cấp hoặc khối cho từng fee component.', fix: 'Bảng scheme, eligibility, subsidy', fs: FS04.md, section: FS04 §7}
+- id: ENG
+  type: tech
+  subtype: service
+  group: R4
+  code: Engine
+  title: FAS Scoring và Decision Engine
+  body: Engine rule-based chạy cho mọi đơn. Chỉ trả tier SBFAS gợi ý và ML risk (Need Score), không bao giờ tự quyết định.
+  fix: Service chấm điểm
+  chips: [Rule-based, Chỉ tham khảo]
+  fs: FS04.md
+  section: FS04 §5, BR10
+- id: EML
+  type: tech
+  subtype: service
+  group: R4
+  code: Email
+  title: Dịch vụ email cho phụ huynh
+  body: Gửi email kết quả sau mỗi quyết định, kèm lý do khi từ chối.
+  fix: Dịch vụ gửi email
+  chips: ['BR8, BR11']
+  fs: FS04.md
+  section: FS04 §8, FS10 BR8
+- id: SCN
+  type: tech
+  subtype: service
+  group: R5
+  code: Service
+  title: Trình đọc bản scan (mô phỏng)
+  body: Đọc mẫu đơn, trả giá trị tìm được và đánh dấu trường không chắc chắn. Prototype mô phỏng, chưa có OCR thật.
+  fix: Service đọc scan
+  chips: [Mô phỏng]
+  fs: FS05.md
+  section: FS05 §1.1
+- {id: FST, type: tech, subtype: storage, group: R5, code: Storage, title: Kho file scan và tài liệu, body: Lưu bản scan (R5) và tài liệu đính kèm (R10). File ảnh hoặc PDF., fix: Kho lưu file, fs: FS05.md, section: 'FS05 §4, FS10 §6'}
+- {id: DDR, type: tech, subtype: database, group: R5, code: Database, title: Bản nháp đơn FAS, body: 'Nháp lưu theo trường kèm người lưu và thời gian. R5 xoá khi nộp hoặc Discard. R10 mỗi phụ huynh một nháp, lưu bước hiện tại.', fix: Bảng draft đơn, fs: FS05.md, section: 'FS05 BR6, FS10 §10'}
+- {id: DBU, type: tech, subtype: database, group: R6, code: Database, title: Ngân sách FAS, body: Budget Amount của MOEFAS và của SBFAS theo từng trường., fix: Bảng ngân sách, fs: FS06.md, section: FS06 BR6.03}
+- {id: ESK, type: end, subtype: warn, group: R1, code: End, title: Không tạo EA, body: 'Không phải công dân, ngoài độ tuổi, thiếu dữ liệu bắt buộc, hoặc đã có EA.', fs: FS01.md, section: 'FS01 AF01 đến AF03, EF02'}
+- {id: E02, type: end, subtype: fail, group: R8, code: MSG-0802, title: Đăng nhập không xong, body: 'SingPass lỗi hoặc Parent hủy, quay lại trang đăng nhập.', fs: FS08.md, section: FS08 §5}
+- {id: E01, type: end, subtype: fail, group: R8, code: 'MSG-0801, MSG-0809', title: Không vào được hệ thống, body: 'Không tìm thấy Parent, Parent không có con, hoặc API quá 10 giây.', fs: FS08.md, section: 'FS08 §5, AC 3, 23'}
+- {id: E16, type: end, subtype: warn, group: R8, code: Chỉ xem, title: Con đủ 16 tuổi, body: 'Xem EA, phí, lịch sử. Không thanh toán, không nộp FAS.', fs: FS08.md, section: 'FS08 §3 bước 7, AC 7'}
+- {id: ENB, type: end, subtype: warn, group: R9, code: Không đủ số dư, title: Không đủ số dư, body: 'Hiện lý do, gợi ý trả online hoặc chia đôi. Không dữ liệu nào thay đổi.', fs: FS09.md, section: FS09 AC-04}
+- {id: EPD, type: end, subtype: ok, group: R9, code: Paid, title: Invoice đã thanh toán, body: Có mã tham chiếu và biên lai PDF., fs: FS09.md, section: 'FS09 AC-03, AC-13'}
+- {id: EFL, type: end, subtype: fail, group: R9, code: Failed, title: Invoice về Issued, body: 'Không thu tiền, phần EA đã trừ được hoàn. Cho thử lại hoặc thoát.', fs: FS09.md, section: 'FS09 AC-09, AC-17'}
+- {id: ERC, type: end, subtype: warn, group: R9, code: ReconciliationRequired, title: Chờ vận hành xử lý, body: 'Invoice giữ PaymentPending, Parent thấy trạng thái đang xác minh.', fs: FS09.md, section: FS09 AC-18}
+- {id: E2OK, type: end, subtype: ok, group: R2, code: MSG-0207, title: Top-up thành công, body: 'Số dư tăng đúng một lần, có Reference, số dư mới và audit log.', fs: FS02.md, section: 'FS02 AC-03, AC-07'}
+- {id: E2FL, type: end, subtype: fail, group: R2, code: MSG-0208, title: Top-up thất bại, body: 'Số dư không đổi, transaction Failed kèm lý do, cho thử lại.', fs: FS02.md, section: 'FS02 AC-04, AC-10'}
+- {id: E2NF, type: end, subtype: warn, group: R2, code: MSG-0201, title: Không tìm thấy EA, body: 'Account Number hoặc NRIC không có EA, nhập thiếu hay thừa ký tự. Không hiện gợi ý nào.', fs: FS02.md, section: FS02 AC-02}
+- {id: E2BC, type: end, subtype: ok, group: R2, code: Completed, title: Batch Completed, body: 'Hết danh sách, không còn batch item Failed. Mở lại Edit và Run Campaign.', fs: FS02.md, section: FS02 Phụ lục A}
+- {id: E2BF, type: end, subtype: warn, group: R2, code: Failed, title: Batch Failed, body: 'Hết danh sách nhưng còn item Failed (EA_NOT_ACTIVE, CRITERIA_NOT_MATCH, CREDIT_FAILED). Số dư các EA đó không đổi.', fs: FS02.md, section: FS02 AC-26 đến AC-29}
+- {id: E2NO, type: end, subtype: warn, group: R2, code: MSG-0214, title: Không có tài khoản eligible, body: 'Không tạo batch, Batches Run không đổi.', fs: FS02.md, section: FS02 AC-38}
+- {id: E4WT, type: end, subtype: warn, group: R4, code: Pending, title: Đơn MOEFAS chờ form đóng, body: 'Pending, System check Waiting. Phụ huynh thấy Under review kèm ngày form đóng.', fs: FS04.md, section: 'FS04 §2.1, T1'}
+- {id: E4AP, type: end, subtype: ok, group: R4, code: Approved, title: Đơn Approved, body: 'MOEFAS không tier hoặc SBFAS kèm tier. Trợ cấp áp từ Effective from, phụ huynh nhận email.', fs: FS04.md, section: 'FS04 §2.4, §8'}
+- {id: E4RJ, type: end, subtype: fail, group: R4, code: Rejected, title: Đơn Rejected, body: 'Có lý do và ghi chú, phụ huynh nhận email. Đơn chuyển sang chỉ đọc.', fs: FS04.md, section: 'FS04 §2.4, BR11'}
+- {id: E5BL, type: end, subtype: fail, group: R5, code: 'Complete: ...', title: Bị chặn khi nộp, body: 'Thiếu trường bắt buộc, con ngoài tuổi hoặc đã có đơn, trùng NRIC, hoặc form FAS đã đóng. Không tạo đơn.', fs: FS05.md, section: FS05 §6}
+- {id: E5OK, type: end, subtype: ok, group: R5, code: Submitted, title: Đã tạo đơn cho mỗi con, body: 'Toast Application submitted for assessment. Đơn chuyển sang luồng F4, nháp bị xoá.', fs: FS05.md, section: FS05 §2 bước 5}
+- {id: E10LK, type: end, subtype: warn, group: R10, code: Khoá, title: Con bị khoá hoặc không nộp được, body: 'Con đủ 16 tuổi, đã có đơn đang xét, hoặc application form is closed. Continue bị khoá.', fs: FS10.md, section: 'FS10 §4, T2, T12'}
+- {id: E10DR, type: end, subtype: ok, group: R10, code: Draft, title: Bản nháp đã lưu, body: 'Save draft and exit. Thẻ Draft hiện bước đã lưu, Resume mở đúng bước. Dùng chung cho R5 Save draft.', fs: FS10.md, section: 'FS10 §10, T4, T5'}
+- {id: E10OK, type: end, subtype: ok, group: R10, code: Submitted, title: Đơn gia đình đã nộp, body: Hai con thì hai đơn chung mã gia đình. Toast Applications submitted. Hiện Under review trên timeline., fs: FS10.md, section: 'FS10 §2 bước 3, T8'}
+- {id: E6OK, type: end, subtype: ok, group: R6, code: Saved, title: Ngân sách đã lưu, body: Budget Amount hiện đúng giá trị đã lưu trong phạm vi quản lý., fs: FS06.md, section: FS06 §5.1.5}
+- {id: E6WN, type: end, subtype: warn, group: R6, code: Cảnh báo, title: 'Cảnh báo hết budget, vẫn grant', body: 'Remaining Budget gần hết hoặc hết thì cảnh báo, không chặn grant.', fs: FS06.md, section: FS06 BR6.06}
+- {id: E4SV, type: end, subtype: fail, group: R4, code: Lỗi scheme, title: 'Scheme không hợp lệ, không publish được', body: 'Effective from không sau Form closes, ngày form sai thứ tự, thiếu quốc tịch hoặc băng thu nhập, hoặc kỳ chồng với scheme cùng slot.', fs: FS04.md, section: 'FS04 §7.3, T9, T12'}
+- {id: E3NE, type: end, subtype: warn, group: R3, code: Chờ chốt Q16, title: Chưa liên kết được EA, body: 'Học sinh Singaporean nhưng EA chưa có hoặc đã đóng. Cách xử lý chưa chốt, chờ khách hàng (Q16).', fs: FS03.md, section: 'FS03 F08, Q16'}
+links:
+- {from: JOB, to: F1A, via: job, label: 'Kích hoạt 00:00 SGT', note: 'Lần đầu: Initial Sync. Sau đó chạy mỗi ngày.'}
+- {from: F1A, to: GOV, via: rest, label: Lấy danh sách công dân, note: Initial Sync lấy 7 đến dưới 16 tuổi. Daily Sync chỉ lấy người vừa đủ 7 tuổi trong ngày.}
+- {from: F1A, to: DEA, via: db, label: Ghi Student Profile và EA, note: 'Mã EA duy nhất, Active, SGD 0.00. Không tạo trùng theo NRIC.'}
+- {from: F1A, to: ESK, via: ui, label: Không đủ điều kiện, note: 'Không phải công dân, ngoài độ tuổi, thiếu dữ liệu hoặc đã có EA thì bỏ qua bản ghi.'}
+- {from: F1B, to: GOV, via: rest, label: 'Lấy ngày sinh, quốc tịch hiện tại', note: 'Dùng dữ liệu Government mới nhất, không dùng dữ liệu đã lưu lúc tạo.'}
+- {from: F1B, to: DEA, via: db, label: Đổi trạng thái sang Closed, note: Chỉ đóng khi đủ điều kiện hoàn tất. Còn số dư thì Closure Deferred.}
+- {from: S2H, to: F2A, via: ui, label: Tab Individual Top-Up, note: Tìm theo Account Number hoặc NRIC đầy đủ.}
+- {from: F2A, to: DEA, via: db, label: 'Tìm EA, đọc chủ tài khoản', note: 'Khớp chính xác. Hiện NRIC che một phần, trạng thái và số dư.'}
+- {from: F2A, to: F2B, via: ui, label: Continue, note: Nhập số tiền và Reason (không bắt buộc).}
+- {from: F2A, to: E2NF, via: ui, label: Không tìm thấy EA, note: 'Báo MSG-0201, không hiện danh sách gợi ý.'}
+- {from: F2B, to: DEA, via: db, label: Ghi có số dư, note: Bút toán và số dư cập nhật trong cùng một database transaction.}
+- {from: F2B, to: DTU, via: db, label: Tạo top-up transaction, note: 'Reference TUP-IND-{timestamp}. Kiểm tra Reference để không ghi trùng khi bấm xác nhận hai lần.'}
+- {from: F2B, to: DAL, via: db, label: Ghi audit log, note: 'Mỗi top-up ghi người thực hiện, số tiền, thời điểm.'}
+- {from: F2B, to: E2OK, via: ui, label: Success, note: Hiện Reference và số dư mới.}
+- {from: F2B, to: E2FL, via: ui, label: Failed, note: EA không Active hoặc lỗi ghi có. Số dư không đổi.}
+- {from: F2C, to: DTU, via: db, label: Đọc giao dịch theo bộ lọc, note: 'Lọc theo nguồn, Status, tên học sinh. Total Spending chỉ cộng giao dịch Success.'}
+- {from: F2C, to: DCP, via: db, label: Đọc batch và campaign, note: Top-Up Summary của campaign cộng dồn từ các batch.}
+- {from: S2H, to: F2C, via: ui, label: Tab Top-Up History}
+- {from: S2H, to: F2D, via: ui, label: Tab Bulk Campaigns, note: Create Campaign hoặc Edit.}
+- {from: F2D, to: DCP, via: db, label: Ghi Campaign và Criterion, note: 'Trạng thái Draft, DefinitionVersion tăng mỗi lần sửa, RowVersion chống sửa đồng thời.'}
+- {from: F2D, to: F2E, via: ui, label: Preview, note: Dùng được ở mọi trạng thái campaign.}
+- {from: F2D, to: F2F, via: ui, label: Run Campaign, note: Không cần Preview trước. Chạy ngay khi bấm.}
+- {from: F2E, to: DEA, via: db, label: 'Đọc EA Active, tuổi, số dư', note: 'Tuổi tính theo ngày xem Preview. Học sinh PR, IS không có EA nên không xuất hiện.'}
+- {from: F2F, to: DCP, via: db, label: Tạo batch, note: Pending rồi Running. Snapshot số tiền và DefinitionVersion. Tối đa một batch Pending hoặc Running mỗi campaign.}
+- {from: F2F, to: F2G, via: call, label: Bắt đầu xử lý, note: Lập danh sách eligible theo dữ liệu lúc bấm.}
+- {from: F2F, to: E2NO, via: ui, label: Không có eligible, note: 'Báo MSG-0214, không tạo batch.'}
+- {from: F2G, to: DEA, via: db, label: Kiểm tra Active và ghi có từng EA, note: Đánh giá lại criterion bằng dữ liệu lúc xử lý. Không còn thỏa thì CRITERIA_NOT_MATCH.}
+- {from: F2G, to: DTU, via: db, label: Tạo transaction nguồn Bulk, note: Mỗi batch item một Reference ID riêng.}
+- {from: F2G, to: DCP, via: db, label: Cập nhật batch item và summary, note: 'Outcome Successful hoặc Failed, TotalCredited, SuccessfulCount, FailedCount.'}
+- {from: F2G, to: DAL, via: db, label: Ghi audit, note: 'Người bấm Run Campaign, bắt đầu và kết thúc batch.'}
+- {from: F2G, to: F2C, via: call, label: Kết quả hiện ở Top-Up History, note: 'Nguồn Bulk Batches, Export CSV từ Batch summary.'}
+- {from: F2G, to: E2BC, via: ui, label: Không còn item Failed}
+- {from: F2G, to: E2BF, via: ui, label: Còn item Failed, note: 'Các EA khác vẫn được xử lý, số dư EA Failed không đổi.'}
+- {from: Q2A, to: F2B, via: impl, label: BR-F2-04}
+- {from: Q2B, to: F2F, via: impl, label: DA-14}
+- {from: S3H, to: F3A, via: ui, label: 'Quản lý School, Class, Student'}
+- {from: F3A, to: F3B, via: call, label: Sau khi tạo enrolment, note: F06 tạo enrolment xong thì chạy F08 nếu học sinh là Singaporean.}
+- {from: F3B, to: DEA, via: db, label: 'Đọc EA, ghi liên kết', note: 'Liên kết một lần cho mỗi học sinh, không đổi số dư.'}
+- {from: F3C, to: F3D, via: call, label: Dữ liệu nền để phát hành, note: 'Fee Type, Component, Rate Rule dùng khi tạo Fee Publication.'}
+- {from: F3D, to: F3A, via: call, label: Lấy enrolment hiệu lực, note: F14 lấy enrolment hiệu lực tại eligibility_date để tìm người nhận.}
+- {from: F3D, to: F3E, via: call, label: Sinh charge cho người nhận}
+- {from: F3E, to: DCH, via: db, label: Ghi Student Charge, note: DRAFT rồi POSTED. Chỉ POSTED mới hiện cho phụ huynh.}
+- {from: F3F, to: F3A, via: call, label: Nạp dữ liệu học vụ hàng loạt, note: Có Import Preview và kết quả lỗi. Không tạo trùng Student hoặc Enrolment.}
+- {from: S4U, to: F4A, via: ui, label: FAS applications}
+- {from: S4U, to: F4F, via: ui, label: Menu schemes, note: 'MOE HQ: MOEFAS schemes. School Admin: SBFAS schemes.'}
+- {from: F5D, to: F4B, via: call, label: 'Tạo đơn mỗi con, nguồn Paper', note: Dùng chung mã gia đình khi có nhiều con.}
+- {from: F10E, to: F4B, via: call, label: 'Tạo đơn mỗi con, nguồn Online', note: Nguồn thu nhập là API Chính phủ.}
+- {from: F4B, to: DSC, via: db, label: Tìm scheme đang mở form, note: Kiểm tra scheme MOEFAS và SBFAS của trường. Nhóm quốc tịch có nằm trong scheme MOEFAS không.}
+- {from: F4B, to: DAP, via: db, label: Ghi đơn và History Submitted, note: 'MOEFAS Pending, System check Waiting. Hoặc SBFAS Pending cho trường.'}
+- {from: F4B, to: ENG, via: call, label: Engine chạy cho mọi đơn, note: 'Trả tier gợi ý và ML risk, chỉ để tham khảo.'}
+- {from: F4B, to: E4WT, via: ui, label: MOEFAS Pending, note: Chờ đến ngày form MOEFAS đóng.}
+- {from: F4B, to: F4E, via: ui, label: SBFAS Pending gửi trường, note: 'Học sinh PR hoặc International: không đủ điều kiện MOEFAS về quốc tịch.'}
+- {from: JFC, to: F4C, via: job, label: Kích hoạt cuối ngày Form closes, note: Không nhận thêm đơn MOEFAS cho scheme này.}
+- {from: F4C, to: DAP, via: db, label: 'Xếp hạng, ghi quyết định', note: Hạng n of N. Approved bởi System (auto-approved).}
+- {from: F4C, to: DSC, via: db, label: Đọc điều kiện scheme, note: 'Quốc tịch, GHI, PCI, match rule. Giới hạn và trợ cấp luôn lấy từ scheme.'}
+- {from: F4C, to: F4H, via: call, label: 'Đạt: áp trợ cấp', note: 'Effective from của scheme, hoặc hôm nay nếu muộn hơn.'}
+- {from: F4C, to: F4E, via: call, label: Không đạt và Also consider SBFAS = Yes, note: Thành SBFAS Pending gửi trường của học sinh.}
+- {from: F4C, to: E4RJ, via: ui, label: Không đạt và Also consider SBFAS = No, note: 'Rejected, lý do Not eligible for MOEFAS.'}
+- {from: F4C, to: E4AP, via: ui, label: Đạt điều kiện}
+- {from: F4C, to: EML, via: event, label: Gửi email kết quả}
+- {from: F4A, to: DAP, via: db, label: Đọc đơn theo phạm vi quyền, note: Trường chỉ thấy SBFAS của học sinh đang học tại trường. Không thấy MOEFAS và thu nhập MOEFAS.}
+- {from: F4A, to: F4E, via: ui, label: Review hoặc View, note: School Admin mở drawer cho đơn SBFAS Pending.}
+- {from: F4E, to: ENG, via: call, label: Lấy tier gợi ý và ML risk, note: Tier gợi ý là scheme SBFAS đầu tiên mà hộ gia đình thoả điều kiện.}
+- {from: F4E, to: DSC, via: db, label: Chọn tier = scheme SBFAS, note: Danh sách là các scheme đã publish của trường trong kỳ nộp đơn.}
+- {from: F4E, to: DAP, via: db, label: Ghi quyết định, note: Quyết định đầu tiên là quyết định cuối. Người sau nhận thông báo đơn đã được quyết định.}
+- {from: F4E, to: F4H, via: call, label: 'Approve: áp trợ cấp', note: Toast Subsidy applied to the student's EA fees.}
+- {from: F4E, to: E4AP, via: ui, label: Approve}
+- {from: F4E, to: E4RJ, via: ui, label: Reject, note: 'Cần Reason và Comment, tối đa 500 ký tự.'}
+- {from: F4E, to: EML, via: event, label: Gửi email cho phụ huynh}
+- {from: F4F, to: DSC, via: db, label: 'Ghi scheme Draft, Publish', note: Kiểm tra chồng kỳ cùng slot. Scheme cũ không có ngày kết thúc thì tự đặt Effective to.}
+- {from: F4F, to: F4G, via: ui, label: Add fee, note: Chỉ với scheme Active hoặc Upcoming.}
+- {from: F4G, to: DSC, via: db, label: Thêm cột fee component, note: 'Ghi added at và by. Component đã có không xoá, không sửa.'}
+- {from: F4G, to: F4H, via: call, label: Áp trợ cấp cho phí đang mở, note: Cho học sinh đã được cấp scheme này. Phí phát sinh sau tự được giảm.}
+- {from: F4H, to: DCH, via: db, label: Giảm Student Charge, note: Áp theo cấp hoặc khối của học sinh cho phí chưa trả trong kỳ hiệu lực.}
+- {from: F4H, to: DSC, via: db, label: Đọc trợ cấp theo cấp hoặc khối}
+- {from: Q4B, to: F4B, via: impl, label: BR1}
+- {from: Q4A, to: F4C, via: impl, label: BR2}
+- {from: Q4C, to: F4F, via: impl, label: BR3}
+- {from: S5U, to: F5A, via: ui, label: Upload scans}
+- {from: F5A, to: FST, via: file, label: Lưu bản scan, note: 'Tối đa 5 file, 10 MB mỗi file.'}
+- {from: F5A, to: SCN, via: rest, label: Đọc mẫu đơn, note: 'Trả giá trị tìm được, trường không chắc chắn được tô vàng.'}
+- {from: F5A, to: F5B, via: ui, label: Mở Review application}
+- {from: F5A, to: F5E, via: ui, label: Bấm dòng đã nộp, note: 'View application chỉ đọc, Edit khi còn Pending.'}
+- {from: F5B, to: DPR, via: db, label: Điền thông tin người khai, note: 'Từ hồ sơ phụ huynh, khoá không cho sửa.'}
+- {from: F5B, to: F3A, via: call, label: Điền thông tin con từ hồ sơ MOE, note: 'Trường, cấp, khối, lớp từ enrolment hiện tại. Đối chiếu theo NRIC.'}
+- {from: F5B, to: GOV, via: rest, label: Tra thu nhập người khai và thành viên, note: Mẫu không có ô thu nhập.}
+- {from: F5B, to: DDR, via: db, label: Save draft, note: 'Lưu theo trường, kèm người lưu và thời gian.'}
+- {from: F5B, to: E10DR, via: ui, label: Bản nháp, note: 'Danh sách hiện dòng Draft, Continue hoặc Delete.'}
+- {from: F5B, to: F5C, via: ui, label: Review and submit}
+- {from: F5C, to: DSC, via: db, label: Kiểm tra form FAS đang mở, note: Ngoài Form opens và Form closes của MOEFAS và SBFAS của trường thì chặn.}
+- {from: F5C, to: DAP, via: db, label: Kiểm tra con đã có đơn năm nay}
+- {from: F5C, to: E5BL, via: ui, label: Không hợp lệ, note: Ghi chú đỏ ở đầu trang liệt kê điều cần sửa.}
+- {from: F5C, to: F5D, via: ui, label: Hợp lệ, note: Mở Review before submitting.}
+- {from: F5D, to: DDR, via: db, label: Xoá bản nháp, note: Sau khi nộp hoặc Discard.}
+- {from: F5D, to: E5OK, via: ui, label: Confirm and submit}
+- {from: F5E, to: DAP, via: db, label: Save changes, note: 'Cập nhật mẫu đơn, hộ, thu nhập, context. History Paper application edited.'}
+- {from: Q4B, to: F5C, via: impl, label: BR9}
+- {from: S6U, to: F6A, via: ui, label: Manage Budget}
+- {from: S6U, to: F6B, via: ui, label: Subsidy Statistics}
+- {from: S6U, to: F6C, via: ui, label: Budget Tracking}
+- {from: F6A, to: DBU, via: db, label: Lưu và đọc Budget Amount, note: 'MOE HQ ghi MOEFAS, School User ghi SBFAS của trường mình.'}
+- {from: F6A, to: E6OK, via: ui, label: Save}
+- {from: F6B, to: DAP, via: db, label: Tổng hợp subsidy đã granted, note: Theo loại FAS và phạm vi người dùng. Không lẫn dữ liệu trường khác.}
+- {from: F6C, to: DBU, via: db, label: Đọc Budget Amount}
+- {from: F6C, to: F6B, via: call, label: Lấy Subsidy Amount Used, note: 'Cách tính số tiền được xem là đã sử dụng còn chờ chốt (G6, G7).'}
+- {from: F6C, to: E6WN, via: ui, label: Gần hết hoặc hết budget, note: 'Chỉ cảnh báo, không chặn grant.'}
+- {from: Q6A, to: F6C, via: impl, label: BR6.06}
+- {from: STP, to: F8A, via: ui, label: Log in with SingPass}
+- {from: F8A, to: SGP, via: redirect, label: Chuyển sang SingPass, note: Parent xác thực trên SingPass (mock).}
+- {from: F8A, to: SGP, via: redirect, label: 'Nhận NRIC, họ tên, địa chỉ cư trú', note: SingPass trả kết quả xác thực về hệ thống.}
+- {from: F8A, to: GOV, via: rest, label: Tìm Parent và các con theo NRIC, note: 'Timeout 10 giây, quá hạn báo MSG-0809.'}
+- {from: F8A, to: DPR, via: db, label: 'Tạo tài khoản lần đầu, cập nhật Parent', note: 'Chỉ cập nhật cho Parent vừa đăng nhập, không có job cập nhật hằng đêm.'}
+- {from: F8A, to: DEA, via: db, label: Cập nhật dữ liệu các con, note: 'Cần thống nhất: FS01 ghi R8 không đồng bộ toàn bộ Student, còn FS08 bản 0.4 ghi có cập nhật dữ liệu các con khi đăng nhập.'}
+- {from: F8A, to: F8B, via: ui, label: Vào Home, note: Mỗi con một card.}
+- {from: F8A, to: E02, via: ui, label: SingPass lỗi hoặc Parent hủy}
+- {from: F8A, to: E01, via: ui, label: Không tìm thấy Parent hoặc API chậm}
+- {from: F8B, to: DEA, via: db, label: Đọc số dư và giao dịch, note: 'Mới nhất trước, 20 dòng mỗi trang.'}
+- {from: F8B, to: DTU, via: db, label: Đọc top-up làm Money in, note: 'Type Top-up, Status Completed. Description là MOE Top-up chung, không chứa lý do nội bộ.'}
+- {from: F8B, to: F1B, via: call, label: Closure check trước khi xem EA, note: 'FS01 F02-BR02: mọi thao tác truy xuất EA phải qua kiểm tra này.'}
+- {from: F8B, to: E16, via: ui, label: Con đủ 16 tuổi, note: 'Chỉ xem, không thanh toán, không nộp FAS.'}
+- {from: F8B, to: F8D, via: ui, label: Chọn thẻ con, note: 'Home là nơi chọn con. Tên con, mã EA giữ xuyên suốt các trang sau.'}
+- {from: F8B, to: F8F, via: ui, label: Hoạt động EA gần đây, note: Lối tắt phụ xem gộp nhiều con.}
+- {from: F8F, to: F8D, via: ui, label: Chọn tên con, note: Sang đúng trang chi tiết của con đó.}
+- {from: F8F, to: DEA, via: db, label: Đọc bút toán nhiều con, note: 'Ghép trang đầu của từng tài khoản, tối đa 100 bút toán mỗi tài khoản.'}
+- {from: F8D, to: F8E, via: ui, label: Xem bút toán EA, note: 'Ghi có, ghi nợ ví của con này.'}
+- {from: F8D, to: F9A, via: ui, label: Trả phí, note: 'Vào thẳng khoản phí của con đã chọn, bỏ bước chọn lại học sinh. Mục Fees and Payments riêng khỏi menu chính.'}
+- {from: F8D, to: F9F, via: ui, label: Hóa đơn và thanh toán (tương lai), note: Chưa hiện menu khi chưa có nguồn lịch sử.}
+- {from: F8D, to: DEA, via: db, label: Đọc thông tin tài khoản và số dư, note: Dùng danh sách tài khoản và wallet balance hiện có.}
+- {from: F8E, to: DEA, via: db, label: Đọc giao dịch ví, note: 'Phân trang hiện có, mới nhất trước.'}
+- {from: F9F, to: DTX, via: db, label: 'Đọc invoice, payment, funding', note: 'Một invoice là một dòng, funding sources nằm trong cùng payment.'}
+- {from: F9E, to: F8D, via: call, label: Quay về tài khoản đúng con, note: Từ biên lai về Edu Account Detail hoặc tiếp tục sang khoản phí của con đã chọn.}
+- {from: F8B, to: F10A, via: ui, label: Financial assistance, note: Chỉ với con dưới 16 tuổi.}
+- {from: F8B, to: F8C, via: ui, label: Mở My details}
+- {from: F8C, to: DPR, via: db, label: 'Ghi phone, email, mailing', note: 'Ghi audit log: trường, giá trị cũ, mới, người sửa, thời điểm.'}
+- {from: F9A, to: DCH, via: db, label: Đọc invoice item từ charge R3, note: Mỗi charge chỉ nằm ở một invoice.}
+- {from: F9A, to: DEA, via: db, label: Đọc số dư EA của con, note: Con không có EA thì không hiện số dư.}
+- {from: F9A, to: F9B, via: ui, label: Chọn invoice}
+- {from: F9B, to: F9C, via: ui, label: Chọn EA hoặc chia đôi, note: 'Nút xác nhận khóa sau lần bấm đầu, gửi kèm idempotency key.'}
+- {from: F9B, to: F9D, via: ui, label: Chọn online}
+- {from: F9B, to: ENB, via: ui, label: Số dư không đủ cho lựa chọn chỉ EA}
+- {from: F9C, to: F1B, via: call, label: Closure check trước giao dịch, note: 'FS01: financial action phải qua kiểm tra đóng EA trước.'}
+- {from: F9C, to: LDG, via: rest, label: Ghi nợ theo FundingReference, note: Gửi lại cùng FundingReference chỉ trừ một lần.}
+- {from: F9C, to: DTX, via: db, label: Tạo transaction và funding leg, note: Invoice chuyển PaymentPending.}
+- {from: F9C, to: F9D, via: call, label: 'Chia đôi: trừ EA xong mới mở online', note: 'Nhánh EA lỗi thì dừng, không thu online.'}
+- {from: F9C, to: F9E, via: call, label: Kết quả nhánh EA, note: 'Có kết quả ngay: Succeeded hoặc Failed.'}
+- {from: F9D, to: PRV, via: rest, label: Tạo payment session, note: Chuyển Parent sang trang provider.}
+- {from: F9D, to: PRV, via: webhook, label: 'Webhook kết quả, ký HMAC', note: 'Ghi nhận trước, xử lý sau. Sai chữ ký thì từ chối và ghi log bảo mật.'}
+- {from: F9D, to: PRV, via: rest, label: Hỏi lại trạng thái định kỳ, note: Job đối soát cho các nhánh còn Pending.}
+- {from: F9D, to: F9E, via: call, label: Cập nhật kết quả online}
+- {from: F9E, to: LDG, via: rest, label: Hoàn phần EA (reversal), note: 'Khi online thất bại, bị hủy hoặc hết hạn.'}
+- {from: F9E, to: DTX, via: db, label: 'Ghi trạng thái transaction, invoice', note: 'Succeeded, Failed, Cancelled hoặc ReconciliationRequired.'}
+- {from: F9E, to: EPD, via: ui, label: Mọi nhánh Succeeded}
+- {from: F9E, to: EFL, via: ui, label: 'Online thất bại, EA đã hoàn'}
+- {from: F9E, to: ERC, via: ui, label: Kết quả không rõ hoặc hoàn lỗi}
+- {from: F10A, to: DDR, via: db, label: Đọc hoặc xoá bản nháp, note: Mỗi phụ huynh một bản nháp. Resume mở đúng bước đã lưu.}
+- {from: F10A, to: F10B, via: ui, label: Apply for FAS hoặc Resume draft}
+- {from: F10A, to: E10LK, via: ui, label: Apply bị khoá, note: 'Mọi con từ 16 tuổi, đã có đơn Pending, hoặc không có form FAS nào đang mở.'}
+- {from: F10B, to: DPR, via: db, label: Điền thông tin phụ huynh, note: 'Từ Singpass, dữ liệu Chính phủ và My details. Chỉ đọc.'}
+- {from: F10B, to: F3A, via: call, label: Đọc các con từ hồ sơ MOE, note: 'Tên, EA, trường, lớp, quốc tịch. PR hiện school SBFAS only.'}
+- {from: F10B, to: DSC, via: db, label: Kiểm tra form đang mở, note: Không có form nào mở thì con bị khoá kèm ngày form kế tiếp.}
+- {from: F10B, to: E10LK, via: ui, label: Con bị khoá, note: 'Turned 16, đã có đơn đang xét, hoặc form đã đóng.'}
+- {from: F10B, to: F10C, via: ui, label: Continue, note: Bật khi đã chọn ít nhất một con và quan hệ.}
+- {from: F10C, to: GOV, via: rest, label: Lấy thu nhập từng thành viên (CPF), note: Hiện chỉ đọc. Không có tuỳ chọn tự khai thu nhập.}
+- {from: F10C, to: DDR, via: db, label: Lưu nháp mỗi lần Continue hoặc Back}
+- {from: F10C, to: E10DR, via: ui, label: Save draft and exit}
+- {from: F10C, to: F10D, via: ui, label: Continue, note: Bị khoá khi còn thành viên thiếu tên hoặc NRIC.}
+- {from: F10D, to: FST, via: file, label: Lưu tài liệu, note: 'PDF hoặc ảnh, tối đa 5 MB mỗi file.'}
+- {from: F10D, to: F10E, via: ui, label: Continue}
+- {from: F10E, to: DDR, via: db, label: Xoá bản nháp, note: Sau khi nộp thành công.}
+- {from: F10E, to: E10OK, via: ui, label: Submit application, note: Bị khoá cho đến khi tick xác nhận.}
+- {from: F10E, to: F10F, via: ui, label: My applications}
+- {from: F10F, to: DAP, via: db, label: Đọc đơn và timeline, note: Gom theo đơn gia đình. Pending hiện là Under review.}
+- {from: Q4B, to: F10B, via: impl, label: BR1}
+- {from: F4F, to: E4SV, via: ui, label: Kiểm tra khi Publish, note: 'Báo lỗi cụ thể từng trường, ví dụ Effective from must be after Form closes.'}
+- {from: F3B, to: E3NE, via: ui, label: EA chưa có hoặc đã đóng, note: Chưa chốt cách xử lý (Q16).}
+scenarios:
+- id: UAT-MOE-01
+  type: pos
+  title: '[MOE HQ] Chuẩn bị EA, trường, học sinh và phát hành phí'
+  steps:
+  - [JOB, Job đồng bộ tạo EA cho học sinh vừa đủ 7 tuổi]
+  - [F1A, 'EA Active, số dư SGD 0.00']
+  - [S3H, HQ mở màn quản lý School]
+  - [F3A, 'Tạo School, School User; trường nhập học sinh và gán lớp']
+  - [F3B, Học sinh Singaporean được liên kết với EA]
+  - [F3C, 'Cấu hình loại phí, component, mức phí']
+  - [F3D, 'Phát hành phí, tìm học sinh nhận phí']
+  - [F3E, 'Sinh Student Charge POSTED, hiện cho phụ huynh']
+- id: UAT-MOE-01-N1
+  type: neg
+  title: '[MOE HQ] Công dân không đủ điều kiện tạo EA'
+  parent: UAT-MOE-01
+  at: F1A
+  steps:
+  - [F1A, 'Không phải công dân, ngoài độ tuổi, thiếu dữ liệu hoặc đã có EA']
+  - [ESK, 'Bỏ qua bản ghi, không tạo EA']
+- id: UAT-MOE-01-N2
+  type: neg
+  title: '[MOE HQ] Học sinh chưa có EA để liên kết'
+  parent: UAT-MOE-01
+  at: F3B
+  steps:
+  - [F3B, Học sinh Singaporean nhưng EA chưa có hoặc đã đóng]
+  - [E3NE, 'Chưa liên kết, cách xử lý chờ khách hàng chốt']
+- id: UAT-MOE-02
+  type: pos
+  title: '[MOE HQ] Top-up lẻ cho một EA'
+  steps:
+  - [S2H, HQ User mở tab Individual Top-Up]
+  - [F2A, 'Nhập NRIC đầy đủ, thấy chủ tài khoản, EA Active, số dư']
+  - [F2B, 'Nhập 50.00, xem lại, xác nhận']
+  - [E2OK, 'Số dư tăng đúng 50.00 một lần, có Reference và audit']
+- id: UAT-MOE-02-N1
+  type: neg
+  title: '[MOE HQ] Không tìm thấy EA'
+  parent: UAT-MOE-02
+  at: F2A
+  steps:
+  - [F2A, NRIC thiếu ký tự hoặc không có EA]
+  - [E2NF, 'Báo MSG-0201, không hiện gợi ý nào']
+- id: UAT-MOE-02-N2
+  type: neg
+  title: '[MOE HQ] EA đã Closed'
+  parent: UAT-MOE-02
+  at: F2B
+  steps:
+  - [F2B, Xác nhận top-up cho EA không còn Active]
+  - [E2FL, 'Bị từ chối, số dư không đổi, transaction Failed được ghi log']
+- id: UAT-MOE-02-E1
+  type: edge
+  title: '[MOE HQ] Bấm xác nhận hai lần'
+  parent: UAT-MOE-02
+  at: F2B
+  steps:
+  - [F2B, HQ User bấm xác nhận hai lần liên tiếp]
+  - [E2OK, 'Chỉ một transaction theo Reference ID, ghi có một lần']
+- id: UAT-MOE-03
+  type: pos
+  title: '[MOE HQ] Tạo và chạy Campaign top-up hàng loạt'
+  steps:
+  - [S2H, HQ User mở tab Bulk Campaigns]
+  - [F2D, 'Tạo campaign tuổi 7 đến 12, số dư dưới 100, 100.00 mỗi tài khoản']
+  - [F2E, Preview thấy số tài khoản và tổng tiền dự kiến]
+  - [F2F, 'Bấm Run Campaign, batch Pending rồi Running']
+  - [F2G, 'Ghi có từng EA, đánh giá lại criterion lúc xử lý']
+  - [E2BC, 'Cả batch Successful, Batches Run tăng 1']
+- id: UAT-MOE-03-N1
+  type: neg
+  title: '[MOE HQ] Không có tài khoản eligible'
+  parent: UAT-MOE-03
+  at: F2F
+  steps:
+  - [F2F, Không EA nào thỏa criterion lúc bấm Run Campaign]
+  - [E2NO, 'Báo MSG-0214, không tạo batch']
+- id: UAT-MOE-03-A1
+  type: alt
+  title: '[MOE HQ] Một số EA bị Failed trong batch'
+  parent: UAT-MOE-03
+  at: F2G
+  steps:
+  - [F2G, Một EA bị đóng hoặc không còn thỏa criterion lúc xử lý]
+  - [E2BF, 'EA đó Failed, số dư không đổi, các EA khác vẫn được ghi có']
+- id: UAT-MOE-03-E1
+  type: edge
+  title: '[MOE HQ] Server khởi động lại giữa batch'
+  parent: UAT-MOE-03
+  at: F2G
+  steps:
+  - [F2G, Server restart khi batch đang Running]
+  - [E2BC, 'Batch tiếp tục từ item chưa xử lý, không ghi có trùng']
+- id: UAT-MOE-04
+  type: pos
+  title: '[MOE HQ] Thiết lập ngân sách MOEFAS'
+  steps:
+  - [S6U, MOE HQ mở Manage Budget]
+  - [F6A, 'Nhập Budget Amount, bấm Save']
+  - [E6OK, Hiện Budget Amount đã lưu]
+- id: UAT-MOE-05
+  type: pos
+  title: '[MOE HQ] Theo dõi thống kê và sử dụng ngân sách MOEFAS'
+  steps:
+  - [S6U, MOE HQ mở Budget Tracking]
+  - [F6B, Lấy tổng subsidy đã granted trong phạm vi MOEFAS]
+  - [F6C, 'Hiện Budget Amount, Subsidy Amount Used, Remaining Budget']
+- id: UAT-MOE-05-E1
+  type: edge
+  title: '[MOE HQ] Budget hết nhưng vẫn grant'
+  parent: UAT-MOE-05
+  at: F6C
+  steps:
+  - [F6C, Subsidy Amount Used chạm hoặc vượt Budget Amount]
+  - [E6WN, 'Hiện cảnh báo, không chặn grant']
+- id: UAT-MOE-06
+  type: pos
+  title: '[MOE HQ] Tạo scheme MOEFAS và xem đơn FAS'
+  steps:
+  - [S4U, MOE HQ mở MOEFAS schemes]
+  - [F4F, 'Wizard General, Eligibility, Subsidy theo cấp rồi Publish']
+  - [F4A, 'Xem đơn FAS của mọi trường, chỉ xem, không Approve hay Reject']
+- id: UAT-MOE-06-N1
+  type: neg
+  title: '[MOE HQ] Scheme không hợp lệ'
+  parent: UAT-MOE-06
+  at: F4F
+  steps:
+  - [F4F, 'Effective from bằng hoặc trước Form closes, hoặc kỳ chồng scheme khác']
+  - [E4SV, 'Báo lỗi, không publish được']
+- id: UAT-SCH-01
+  type: pos
+  title: '[School] Nhập đơn giấy của phụ huynh'
+  steps:
+  - [S5U, School user mở Upload applications]
+  - [F5A, 'Tải bản scan, hệ thống đọc mẫu đơn']
+  - [F5B, 'Nhập NRIC, thông tin tự điền, thu nhập từ dữ liệu Chính phủ']
+  - [F5C, 'Review and submit, form đang mở, dữ liệu hợp lệ']
+  - [F5D, 'Confirm and submit, mỗi con một đơn']
+  - [F4B, Phân luồng theo F4]
+  - [E4WT, MOEFAS Pending chờ form đóng]
+- id: UAT-SCH-01-N1
+  type: neg
+  title: '[School] Bị chặn khi nộp đơn giấy'
+  parent: UAT-SCH-01
+  at: F5C
+  steps:
+  - [F5C, 'Thiếu trường, con ngoài 7 đến 16 tuổi, đã có đơn, trùng NRIC, hoặc form đã đóng']
+  - [E5BL, 'Ghi chú đỏ liệt kê điều cần sửa, không tạo đơn']
+- id: UAT-SCH-01-E1
+  type: edge
+  title: '[School] Lưu nháp khi nhập dở'
+  parent: UAT-SCH-01
+  at: F5B
+  steps:
+  - [F5B, Bấm Save draft]
+  - [E10DR, 'Dòng Draft hiện trong danh sách, Continue hoặc Delete']
+- id: UAT-SCH-02
+  type: pos
+  title: '[School] Tạo scheme SBFAS và thêm fee'
+  steps:
+  - [S4U, School Admin mở SBFAS schemes]
+  - [F4F, 'Wizard General, Eligibility, Subsidy rồi Publish Tier 1']
+  - [F4G, Thêm fee component phát sinh cuối năm vào scheme Active]
+  - [F4H, Áp trợ cấp cho phí đang mở của học sinh đã được cấp]
+- id: UAT-SCH-02-N1
+  type: neg
+  title: '[School] Scheme SBFAS không hợp lệ'
+  parent: UAT-SCH-02
+  at: F4F
+  steps:
+  - [F4F, 'Effective from không sau Form closes, hoặc kỳ chồng với Tier cùng tên']
+  - [E4SV, 'Báo lỗi, không publish được']
+- id: UAT-SCH-03
+  type: pos
+  title: '[School] Duyệt đơn SBFAS'
+  steps:
+  - [S4U, 'School Admin mở FAS applications, tab Pending']
+  - [F4A, Mở đơn SBFAS của học sinh trong trường]
+  - [F4E, 'Chọn tier ML gợi ý, bấm Approve']
+  - [F4H, Áp trợ cấp theo khối của học sinh]
+  - [E4AP, 'Approved kèm tier, Effective from của scheme']
+- id: UAT-SCH-03-N1
+  type: neg
+  title: '[School] Từ chối đơn SBFAS'
+  parent: UAT-SCH-03
+  at: F4E
+  steps:
+  - [F4E, 'Chọn Reject, điền Reason và Comment']
+  - [E4RJ, 'Rejected, phụ huynh nhận email lý do']
+- id: UAT-SCH-04
+  type: pos
+  title: '[School] Thiết lập và theo dõi ngân sách SBFAS'
+  steps:
+  - [S6U, School user mở Manage Budget]
+  - [F6A, 'Nhập Budget Amount SBFAS của trường, Save']
+  - [F6C, Theo dõi Subsidy Amount Used và Remaining Budget của trường]
+- id: UAT-SCH-04-E1
+  type: edge
+  title: '[School] Budget SBFAS hết nhưng vẫn grant'
+  parent: UAT-SCH-04
+  at: F6C
+  steps:
+  - [F6C, Subsidy Amount Used chạm hoặc vượt Budget Amount]
+  - [E6WN, 'Hiện cảnh báo, không chặn grant']
+- id: UAT-PAR-01
+  type: pos
+  title: '[Parent] Đăng nhập, xem EA và trả phí bằng EA'
+  steps:
+  - [STP, Parent mở e-Service]
+  - [F8A, 'Đăng nhập SingPass, API tìm thấy Parent và con']
+  - [F8B, 'Home hiện thẻ Edu Account của con, số dư EA']
+  - [F8D, 'Chọn thẻ con, mở Edu Account Detail']
+  - [F9A, 'Chọn Trả phí, thấy invoice Issued của đúng con']
+  - [F9B, 'Số dư đủ, Parent chọn trả bằng EA']
+  - [F9C, 'Closure check qua, sổ cái trừ EA đúng một lần']
+  - [F9E, Mọi nhánh Succeeded]
+  - [EPD, 'Invoice Paid, có mã tham chiếu và biên lai']
+- id: UAT-PAR-01-N1
+  type: neg
+  title: '[Parent] SingPass lỗi hoặc Parent hủy'
+  parent: UAT-PAR-01
+  at: F8A
+  steps:
+  - [F8A, SingPass báo lỗi hoặc Parent bấm hủy]
+  - [E02, 'Báo MSG-0802, quay lại trang đăng nhập']
+- id: UAT-PAR-01-N2
+  type: neg
+  title: '[Parent] Không tìm thấy Parent hoặc API chậm'
+  parent: UAT-PAR-01
+  at: F8A
+  steps:
+  - [F8A, 'API không thấy Parent, Parent không có con, hoặc quá 10 giây']
+  - [E01, 'Báo MSG-0801 hoặc MSG-0809, không vào được']
+- id: UAT-PAR-01-E1
+  type: edge
+  title: '[Parent] Con vừa đủ 16 tuổi'
+  parent: UAT-PAR-01
+  at: F8B
+  steps:
+  - [F8B, Parent mở EA của con vừa đủ 16 tuổi]
+  - [F1B, 'Closure check: đủ 16 tuổi, EA ở trạng thái Due for closure']
+  - [E16, 'Chỉ xem, không thanh toán, không nộp FAS']
+- id: UAT-PAR-01-N3
+  type: neg
+  title: '[Parent] Không đủ số dư cho lựa chọn chỉ EA'
+  parent: UAT-PAR-01
+  at: F9B
+  steps:
+  - [F9B, Số dư EA nhỏ hơn số phải trả]
+  - [ENB, 'Hiện lý do, gợi ý trả online hoặc chia đôi']
+- id: UAT-PAR-01-A1
+  type: alt
+  title: '[Parent] Chia đôi EA và online'
+  parent: UAT-PAR-01
+  at: F9B
+  steps:
+  - [F9B, 'Số dư 20.00, invoice 50.00: chọn chia đôi']
+  - [F9C, Trừ trước phần EA 20.00]
+  - [F9D, 'Mở phiên online cho 30.00, webhook báo thành công']
+  - [F9E, Cả hai nhánh Succeeded]
+  - [EPD, 'Invoice Paid, biên lai ghi cả hai phần']
+- id: UAT-PAR-01-N4
+  type: neg
+  title: '[Parent] Phần online thất bại'
+  parent: UAT-PAR-01-A1
+  at: F9D
+  steps:
+  - [F9D, 'Online thất bại, bị hủy hoặc hết hạn']
+  - [F9E, 'Gọi Function 1 hoàn phần EA, nhánh EA Reversed']
+  - [EFL, 'Invoice về Issued, cho thử lại']
+- id: UAT-PAR-01-E2
+  type: edge
+  title: '[Parent] Hoàn EA bị lỗi'
+  parent: UAT-PAR-01-N4
+  at: F9E
+  steps:
+  - [F9E, Lệnh hoàn EA thất bại]
+  - [ERC, 'ReconciliationRequired, cảnh báo vận hành']
+- id: UAT-PAR-03
+  type: pos
+  title: '[Parent] Xem hoạt động EA của một con'
+  steps:
+  - [STP, Parent mở e-Service]
+  - [F8A, Đăng nhập SingPass]
+  - [F8B, Home hiện thẻ Edu Account của các con]
+  - [F8D, 'Chọn thẻ con, mở Edu Account Detail']
+  - [F8E, 'Xem ghi có, ghi nợ ví của con này']
+- id: UAT-PAR-03-A1
+  type: alt
+  title: '[Parent] Xem gộp hoạt động EA của các con'
+  parent: UAT-PAR-03
+  at: F8B
+  steps:
+  - [F8B, Bấm Hoạt động EA gần đây của các con]
+  - [F8F, Mỗi dòng có tên con và mã EA]
+  - [F8D, 'Chọn tên con, sang Edu Account Detail của con đó']
+- id: UAT-PAR-03-E1
+  type: edge
+  title: '[Parent] Hóa đơn và thanh toán (tương lai)'
+  parent: UAT-PAR-03
+  at: F8D
+  steps:
+  - [F8D, 'Nhánh nét đứt, chưa hiện menu']
+  - [F9F, 'Mỗi invoice một dòng, mở ra thấy EA 60 + Online 40 trong cùng payment']
+- id: UAT-PAR-02
+  type: pos
+  title: '[Parent] Nộp đơn FAS online, MOEFAS tự duyệt sau khi form đóng'
+  steps:
+  - [STP, Parent mở e-Service]
+  - [F8A, Đăng nhập SingPass]
+  - [F8B, Home hiện card của con]
+  - [F10A, 'Mở Financial assistance, bấm Apply for FAS']
+  - [F10B, 'Chọn quan hệ và con, thông tin phụ huynh tự điền']
+  - [F10C, 'Thu nhập tự lấy từ dữ liệu Chính phủ, hiện GHI và PCI']
+  - [F10D, 'Bỏ qua tài liệu, nhập context']
+  - [F10E, 'Tick xác nhận, Submit application']
+  - [F4B, 'MOEFAS Pending, System check Waiting']
+  - [JFC, Form MOEFAS đóng]
+  - [F4C, 'Xếp hạng theo PCI thấp nhất, đơn đạt điều kiện']
+  - [F4H, Áp trợ cấp theo cấp của học sinh]
+  - [E4AP, 'Approved MOEFAS, phụ huynh nhận email']
+- id: UAT-PAR-02-N1
+  type: neg
+  title: '[Parent] Con bị khoá khi chọn'
+  parent: UAT-PAR-02
+  at: F10B
+  steps:
+  - [F10B, 'Con đã 16 tuổi, đã có đơn đang xét, hoặc form đã đóng']
+  - [E10LK, 'Con bị khoá, Continue không bật']
+- id: UAT-PAR-02-N2
+  type: neg
+  title: '[Parent] Không có form FAS nào đang mở'
+  parent: UAT-PAR-02
+  at: F10A
+  steps:
+  - [F10A, 'Mọi con từ 16 tuổi, đã có đơn Pending, hoặc không có form đang mở']
+  - [E10LK, 'Apply for FAS bị khoá, hiện ngày form kế tiếp']
+- id: UAT-PAR-02-E1
+  type: edge
+  title: '[Parent] Lưu nháp và quay lại sau'
+  parent: UAT-PAR-02
+  at: F10C
+  steps:
+  - [F10C, Phụ huynh bấm Save draft and exit ở bước 2]
+  - [E10DR, 'Thẻ Draft hiện bước đã lưu, Resume mở lại đúng bước']
+- id: UAT-PAR-02-E2
+  type: edge
+  title: '[Parent] Nộp đơn cho hai con'
+  parent: UAT-PAR-02
+  at: F10E
+  steps:
+  - [F10E, Chọn hai con rồi Submit application]
+  - [E10OK, 'Hai đơn chung một mã gia đình, toast Applications submitted']
+- id: UAT-PAR-02-A1
+  type: alt
+  title: '[Parent] Không đạt MOEFAS, chuyển SBFAS của trường'
+  parent: UAT-PAR-02
+  at: F4C
+  steps:
+  - [F4C, 'Vượt giới hạn MOEFAS, phụ huynh đã chọn cũng xét SBFAS']
+  - [F4E, 'Thành SBFAS Pending, School Admin chọn tier và Approve']
+  - [E4AP, 'Approved SBFAS kèm tier, phụ huynh nhận email']
+- id: UAT-PAR-02-N3
+  type: neg
+  title: '[Parent] Không đạt MOEFAS và không xét SBFAS'
+  parent: UAT-PAR-02
+  at: F4C
+  steps:
+  - [F4C, 'Vượt giới hạn, Also consider SBFAS là No']
+  - [E4RJ, 'Rejected, lý do Not eligible for MOEFAS, email cho phụ huynh']
+- id: UAT-PAR-02-A2
+  type: alt
+  title: '[Parent] Học sinh PR hoặc International nộp đơn'
+  parent: UAT-PAR-02
+  at: F4B
+  steps:
+  - [F4B, Quốc tịch không nằm trong scheme MOEFAS]
+  - [F4E, 'Thành SBFAS Pending ngay, trường xét đơn']
+  - [E4AP, Trường Approve kèm tier]
+- id: UAT-PAR-02-N4
+  type: neg
+  title: '[Parent] Trường từ chối SBFAS'
+  parent: UAT-PAR-02-A2
+  at: F4E
+  steps:
+  - [F4E, 'School Admin chọn Reject, điền Reason và Comment']
+  - [E4RJ, 'Rejected, phụ huynh nhận email lý do']
+layout:
+  JOB: [0, 0]
+  F1A: [340, 0]
+  F1B: [340, 200]
+  GOV: [680, 0]
+  DEA: [680, 200]
+  LDG: [680, 400]
+  ESK: [1020, 0]
+  S2H: [1620, 0]
+  Q2A: [1620, 200]
+  Q2B: [1620, 400]
+  F2A: [1960, 0]
+  F2B: [1960, 200]
+  F2C: [1960, 400]
+  F2D: [1960, 600]
+  F2E: [1960, 800]
+  F2F: [1960, 1000]
+  F2G: [1960, 1200]
+  DTU: [2300, 0]
+  DCP: [2300, 200]
+  DAL: [2300, 400]
+  E2OK: [2640, 0]
+  E2FL: [2640, 200]
+  E2NF: [2640, 400]
+  E2BC: [2640, 600]
+  E2BF: [2640, 800]
+  E2NO: [2640, 1000]
+  S3H: [3240, 0]
+  F3A: [3580, 0]
+  F3B: [3580, 200]
+  F3C: [3580, 400]
+  F3D: [3580, 600]
+  F3E: [3580, 800]
+  F3F: [3580, 1000]
+  DCH: [3920, 0]
+  E3NE: [4260, 0]
+  S4U: [0, 1680]
+  JFC: [0, 1880]
+  Q4B: [0, 2080]
+  Q4A: [0, 2280]
+  Q4C: [0, 2480]
+  F4A: [340, 1680]
+  F4B: [340, 1880]
+  F4C: [340, 2080]
+  F4E: [340, 2280]
+  F4F: [340, 2480]
+  F4G: [340, 2680]
+  F4H: [340, 2880]
+  DAP: [680, 1680]
+  DSC: [680, 1880]
+  ENG: [680, 2080]
+  EML: [680, 2280]
+  E4WT: [1020, 1680]
+  E4AP: [1020, 1880]
+  E4RJ: [1020, 2080]
+  E4SV: [1020, 2280]
+  S5U: [1620, 1680]
+  F5A: [1960, 1680]
+  F5B: [1960, 1880]
+  F5C: [1960, 2080]
+  F5D: [1960, 2280]
+  F5E: [1960, 2480]
+  SCN: [2300, 1680]
+  FST: [2300, 1880]
+  DDR: [2300, 2080]
+  E5BL: [2640, 1680]
+  E5OK: [2640, 1880]
+  S6U: [3240, 1680]
+  Q6A: [3240, 1880]
+  F6A: [3580, 1680]
+  F6B: [3580, 1880]
+  F6C: [3580, 2080]
+  DBU: [3920, 1680]
+  E6OK: [4260, 1680]
+  E6WN: [4260, 1880]
+  STP: [0, 3360]
+  F8A: [340, 3360]
+  F8B: [340, 3560]
+  F8C: [340, 3760]
+  F8D: [340, 3960]
+  F8E: [340, 4160]
+  F8F: [340, 4360]
+  SGP: [680, 3360]
+  DPR: [680, 3560]
+  E02: [1020, 3360]
+  E01: [1020, 3560]
+  E16: [1020, 3760]
+  F9A: [1960, 3360]
+  F9B: [1960, 3560]
+  F9C: [1960, 3760]
+  F9D: [1960, 3960]
+  F9E: [1960, 4160]
+  F9F: [1960, 4360]
+  PRV: [2300, 3360]
+  DTX: [2300, 3560]
+  ENB: [2640, 3360]
+  EPD: [2640, 3560]
+  EFL: [2640, 3760]
+  ERC: [2640, 3960]
+  F10A: [3580, 3360]
+  F10B: [3580, 3560]
+  F10C: [3580, 3760]
+  F10D: [3580, 3960]
+  F10E: [3580, 4160]
+  F10F: [3580, 4360]
+  E10LK: [4260, 3360]
+  E10DR: [4260, 3560]
+  E10OK: [4260, 3760]
